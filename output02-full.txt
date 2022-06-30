@@ -1,0 +1,2 @@
+processes|	seed|	lambda|	upper bound|	context switch time|	alpha|	time slice
+1						19		0.01		4096					4											0.5			64
