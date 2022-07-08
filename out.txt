@@ -5,3 +5,9 @@ upper bound			| 4096
 context switch time	| 4
 alpha				| 0.5
 time slice			| 64
+
+
+------------------------------
+time 0ms: Simulator started for FCFS [Q: empty]
+time 33ms: Process A arrived; added to ready queue [Q: A]
+total time: 13957
