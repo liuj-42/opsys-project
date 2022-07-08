@@ -15,6 +15,12 @@ int main( int argc, char** argv ) {
   float alpha = atof( argv[6] );
   float timeSlice = atof( argv[7] );
 
-  std::cout << "processes|\tseed|\tlambda|\tupper bound|\tcontext switch time|\talpha|\ttime slice" << std::endl;
-  std::cout << n << "\t\t\t\t\t\t" << seed << "\t\t" << lambda << "\t\t" << upperBound << "\t\t\t\t\t" << contextSwitch << "\t\t\t\t\t\t\t\t\t\t\t" << alpha << "\t\t\t" << timeSlice << std::endl;
+  std::string names[7] = { "processes\t\t\t", "seed\t\t\t\t", "lambda\t\t\t\t", "upper bound\t\t\t", "context switch time\t", "alpha\t\t\t\t", "time slice\t\t\t" };
+
+  for ( int i = 0; i < 7; i++ ) {
+    std::cout << names[i] << "| " << argv[i + 1] << std::endl;
+  }
+
+  // std::cout << "processes|\tseed|\tlambda|\tupper bound|\tcontext switch time|\talpha|\ttime slice" << std::endl;
+  // std::cout << n << "\t\t\t\t\t\t" << seed << "\t\t" << lambda << "\t\t" << upperBound << "\t\t\t\t\t" << contextSwitch << "\t\t\t\t\t\t\t\t\t\t\t" << alpha << "\t\t\t" << timeSlice << std::endl;
 }
