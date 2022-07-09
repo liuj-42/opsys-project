@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <vector>
 #include <stdio.h>
+#include <queue>
 
 double exponential_avgeraging(float alpha, float t, float tau)
 {
@@ -34,6 +35,7 @@ struct CPUBurst
 
 struct Process
 {
+  int id;
   int arrival_time;
   int cpu_bursts_num;
   std::vector<CPUBurst> cpu_bursts;
@@ -62,6 +64,7 @@ void generate_process(int id, int seed, double lambda, int upper_bound,
                       std::vector<Process> &processes)
 {
   struct Process new_process;
+  new_process.id = id;
   new_process.arrival_time = floor(next_exp(seed, lambda, upper_bound));
   new_process.cpu_bursts_num = ceil(next_unif(seed));
 
@@ -80,23 +83,56 @@ void generate_process(int id, int seed, double lambda, int upper_bound,
     cpu_bursts_process.push_back(cpu_burst);
   }
   new_process.cpu_bursts = cpu_bursts_process;
+  processes.push_back(new_process);
 }
+struct compareProcess {
+    bool operator()(Process const& p1, Process const& p2)
+    {
+        // return "true" if "p1" is ordered
+        // before "p2", for example:
+        return p1.id < p2.id;
+    }
+};
 int Shortest_Job_First(int time, float alpha, std::vector<Process> &processes)
 {
   // Calculate all cpu time for all processes using exp avg
-  // Have an arrival queue
-  // Add all 0 ms arrivals then remove process from process table
+ 
   // Sort based on processes cpu burts
   // add proper counters to algorithm
   // Remove process from arrival
   // Repeat additions to arrival based on cpu time with arrival time
   // Exit when process table is empty and return results
-
   double avg_cpu = 0;
   double avg_wait = 0;
   double avg_turn = 0;
   double cpu_util = 0;
-  ALGO_print("Algorithm SJF", avg_cpu, avg_wait, avg_turn, 0, 0, cpu_util);
+  std::priority_queue<Process, std::vector<Process>, compareProcess> ready_q;
+  std::vector<int> deletes;
+  //ADD Ready Processes to Ready Queue
+  for(unsigned int i = 0; i < processes.size(); i++){
+    if(time>=processes[i].arrival_time){
+      ready_q.push(processes[i]);
+      deletes.push_back(processes[i].id);
+      std::cout << "Process ID: " << processes[i].id << "\n";
+    }
+  }
+  //Delete From Processes
+  for(unsigned int i=0; i < processes.size(); i++){
+    if(processes[i].id ==deletes[0]){
+      processes.erase(processes.begin()+i);
+      deletes.erase(deletes.begin());
+      i--;
+    }
+  }
+  while(!ready_q.empty() && !processes.empty()){
+    //Increment Counters with sending to CPU
+    //Repition with exponential avg
+    //Check exit
+  }
+  
+  if(processes.empty()){
+    ALGO_print("Algorithm SJF", avg_cpu, avg_wait, avg_turn, 0, 0, cpu_util);
+  }  
   return 0;
 }
 /* argv[0] - next_exp.c
@@ -122,19 +158,19 @@ int main(int argc, char **argv)
 
   for (int i = 0; i < num_processes; i++)
     generate_process(i, seed, lambda, upper_bound, processes);
-
+  
   for (int i = 0; i < num_processes; i++)
   {
     std::cout << "Process ID: " << i << "\n";
     std::cout << "Arrival Time: " << processes[i].arrival_time << "ms\n";
     /*
-    std::cout << "Num. of CPU Bursts: " << cpu_bursts_nums[i] << "\n";
+    std::cout << "Num. of CPU Bursts: " << processes[i].cpu_bursts_num << "\n";
     std::cout << "CPU Bursts: \n\n";
-    for (int c = 0; c < cpu_bursts_nums[i]; c++)
+    for (int c = 0; c < processes[i].cpu_bursts_num; c++)
     {
       std::cout << "CPU Burst #" << c << "\n";
-      std::cout << "CPU Burst Time: " << cpu_bursts[i][c].cpu_burst_time << "ms\n";
-      std::cout << "I/O Burst Time: " << cpu_bursts[i][c].io_burst_time << "ms\n";
+      std::cout << "CPU Burst Time: " << processes[i].cpu_bursts[c].cpu_burst_time << "ms\n";
+      std::cout << "I/O Burst Time: " << processes[i].cpu_bursts[c].io_burst_time << "ms\n";
       std::cout << "\n";
     }*/
   }
