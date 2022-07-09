@@ -8,6 +8,9 @@
 #include <utility>
 #include <list>
 
+// utility function prototypes (actual functions are at the bottom of the file)
+double next_exp(int seed, double lambda, int upper_bound);
+double next_unif(int seed);
 
 class Process
 {
@@ -27,13 +30,10 @@ public:
                 ioBurst = ceil(next_exp(seed, lambda, upper_bound));
                 ioBurst *= 10;
             }
-            bursts.push_back(std::pair(cpuBurst, ioBurst));
+            std::pair<int, int> burst(cpuBurst, ioBurst);
+            bursts.push_back(burst);
         }
         burstItr = bursts.begin();
-
-        // cpu_bursts_process vector<CPUBurst>
-        // arrival_time
-        // cpu_bursts_num
     }
 
     std::pair<int, int> nextBurst() {
@@ -44,18 +44,33 @@ public:
     char getID() { return pid; }
     int getArrivalTime() { return arrival_time; }
     int getBurstsNum() { return cpu_bursts_num; }
+    const std::list<std::pair<int, int>> getBursts() { return bursts; }
+
+
+    // debug
+    void printAllBursts() {
+        auto burstItr = bursts.begin();
+        while( burstItr != bursts.end() ) {
+            std::pair<int, int> burst = nextBurst();
+            std::cout << "CPU Burst: " << burst.first << "ms  \tIO Burst: " << burst.second << "ms\n";
+            std::cout << "CPU Burst: " << burstItr->first << "ms  \tIO Burst: " << burstItr++->second << "ms\n";
+        }
+    }
+
+
 
 private:
-    char pid;
-    int index = 0;
-    int arrival_time;
-    int cpu_bursts_num;
+    char pid;           // Process name
+    // int index = 0;      
+    int arrival_time;   // Arrival time
+    int cpu_bursts_num; // Number of bursts
     // burst.first is CPU burst time
     // burst.second is IO burst time
     // std::vector<std::pair<int, int>> bursts;
     std::list<std::pair<int, int>> bursts;
     std::list<std::pair<int, int>>::iterator burstItr;
 };
+
 
 double next_exp(int seed, double lambda, int upper_bound)
 {
