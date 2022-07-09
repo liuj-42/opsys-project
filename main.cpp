@@ -3,6 +3,7 @@
 #include <string>
 
 #include "next_exp.cpp"
+#include "process.h"
 
 
 char alphabet[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
@@ -29,43 +30,41 @@ int main( int argc, char** argv ) {
   std::cout << "\n\n------------------------------\n";
 
   srand48(seed);
-  
-  std::vector<int> arrivalTimes;
-  std::vector<int> cpuBurstsNums;
-  std::vector<std::vector<CPUBurst>> cpuBursts;
-
-  for(int i = 0; i < numProcesses; i++) generate_process(i, seed, lambda, upperBound, arrivalTimes, cpuBurstsNums, cpuBursts);
-
-  int time = arrivalTimes[0];
-
-  for(int i = 0; i < numProcesses; i++) {
-    // std::cout << "Process ID: " << i << "\n";
-    // std::cout << "Arrival Time: " << arrivalTimes[i] << "ms\n";
-    // std::cout << "Num. of CPU Bursts: " << cpuBurstsNums[i] << "\n";
-    // std::cout << "CPU Bursts: \n\n";
-    char pid = alphabet[i];
-    std::cout << "time 0ms: Simulator started for FCFS [Q: empty]" << std::endl;
-    std::cout << "time " << time << "ms: Process " << pid << " arrived; added to ready queue [Q: " << pid << "]\n";
-
-    for(int c = 0; c < cpuBurstsNums[i]; c++) {
-      // std::cout << "CPU Burst #" << c << "\n";
-      // std::cout << "CPU Burst Time: " << cpuBursts[i][c].cpu_burst_time << "ms\n";
-      // std::cout << "I/O Burst Time: " << cpuBursts[i][c].io_burst_time << "ms\n";
-      // std::cout << "\n";
-      time += contextSwitch/2;
-      int cpu = cpuBursts[i][c].cpu_burst_time;
-      int io = cpuBursts[i][c].io_burst_time;
-      std::cout << "time " << time << "ms: Process " << alphabet[i] << "started using the CPU for " << cpu << "ms burst [Q: empty]\n";
-      time += cpu;
-      std::cout << "time " << time << "ms: Process " << pid << " completed a CPU burst; " << cpuBurstsNums[i]-c << " bursts to go [Q: empty]\n";
-      std::cout << "time " << time << "ms: Process " << pid <<  " switching out of CPU; will block on I/O until time " << time + io << "ms [Q: empty]\n";
-      time += io;
-      std::cout << "time " << time << "ms: Process " << pid << " completed I/O; added to ready queue [Q: " << pid << "]\n";
-      time += contextSwitch/2;
-
-    }
+  std::vector<Process> processes;
+  for ( int i = 0; i < numProcesses; i++ ) {
+    processes.push_back( Process(alphabet[i], seed, lambda, upperBound) );
   }
 
-  std::cout<< "total time: " << time << std::endl;
+  // int time = arrivalTimes[0];
+
+  // for(int i = 0; i < numProcesses; i++) {
+  //   // std::cout << "Process ID: " << i << "\n";
+  //   // std::cout << "Arrival Time: " << arrivalTimes[i] << "ms\n";
+  //   // std::cout << "Num. of CPU Bursts: " << cpuBurstsNums[i] << "\n";
+  //   // std::cout << "CPU Bursts: \n\n";
+  //   char pid = alphabet[i];
+  //   std::cout << "time 0ms: Simulator started for FCFS [Q: empty]" << std::endl;
+  //   std::cout << "time " << time << "ms: Process " << pid << " arrived; added to ready queue [Q: " << pid << "]\n";
+
+  //   for(int c = 0; c < cpuBurstsNums[i]; c++) {
+  //     // std::cout << "CPU Burst #" << c << "\n";
+  //     // std::cout << "CPU Burst Time: " << cpuBursts[i][c].cpu_burst_time << "ms\n";
+  //     // std::cout << "I/O Burst Time: " << cpuBursts[i][c].io_burst_time << "ms\n";
+  //     // std::cout << "\n";
+  //     time += contextSwitch/2;
+  //     int cpu = cpuBursts[i][c].cpu_burst_time;
+  //     int io = cpuBursts[i][c].io_burst_time;
+  //     std::cout << "time " << time << "ms: Process " << alphabet[i] << "started using the CPU for " << cpu << "ms burst [Q: empty]\n";
+  //     time += cpu;
+  //     std::cout << "time " << time << "ms: Process " << pid << " completed a CPU burst; " << cpuBurstsNums[i]-c << " bursts to go [Q: empty]\n";
+  //     std::cout << "time " << time << "ms: Process " << pid <<  " switching out of CPU; will block on I/O until time " << time + io << "ms [Q: empty]\n";
+  //     time += io;
+  //     std::cout << "time " << time << "ms: Process " << pid << " completed I/O; added to ready queue [Q: " << pid << "]\n";
+  //     time += contextSwitch/2;
+
+  //   }
+  // }
+
+  // std::cout<< "total time: " << time << std::endl;
 
 }
