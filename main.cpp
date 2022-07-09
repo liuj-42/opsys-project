@@ -9,14 +9,15 @@
 #include <vector>
 #include <stdio.h>
 
-double exponential_avgeraging(float alpha, float t, float tau){
-  double estimate = alpha * t +((1-alpha)* tau);
+double exponential_avgeraging(float alpha, float t, float tau)
+{
+  double estimate = alpha * t + ((1 - alpha) * tau);
   return estimate;
 }
 
-
-void ALGO_print(std::string name,double avg_cpu,double avg_wait,double avg_turn, int switches, int preemptions, double cpu_util){
-  std::cout <<name<<"\n";
+void ALGO_print(std::string name, double avg_cpu, double avg_wait, double avg_turn, int switches, int preemptions, double cpu_util)
+{
+  std::cout << name << "\n";
   std::cout << "-- average CPU burst time: " << avg_cpu << " ms\n";
   std::cout << "-- average wait time: " << avg_wait << " ms\n";
   std::cout << "-- average turnaround time: " << avg_turn << " ms\n";
@@ -38,11 +39,11 @@ struct Process
   std::vector<CPUBurst> cpu_bursts;
 };
 
-
-
-double next_exp(int seed, double lambda, int upper_bound){
+double next_exp(int seed, double lambda, int upper_bound)
+{
   double x = 0;
-  while (1){
+  while (1)
+  {
     double r = drand48();
     x = -log(r) / lambda;
     if (x <= upper_bound)
@@ -51,7 +52,8 @@ double next_exp(int seed, double lambda, int upper_bound){
   return x;
 }
 
-double next_unif(int seed){
+double next_unif(int seed)
+{
   double x = drand48() * 100;
   return x;
 }
@@ -77,9 +79,10 @@ void generate_process(int id, int seed, double lambda, int upper_bound,
     }
     cpu_bursts_process.push_back(cpu_burst);
   }
-  new_process.cpu_bursts =cpu_bursts_process;
+  new_process.cpu_bursts = cpu_bursts_process;
 }
-int Shortest_Job_First(int time,float alpha,std::vector<Process> &processes){
+int Shortest_Job_First(int time, float alpha, std::vector<Process> &processes)
+{
   // Calculate all cpu time for all processes using exp avg
   // Have an arrival queue
   // Add all 0 ms arrivals then remove process from process table
@@ -93,7 +96,7 @@ int Shortest_Job_First(int time,float alpha,std::vector<Process> &processes){
   double avg_wait = 0;
   double avg_turn = 0;
   double cpu_util = 0;
-  ALGO_print("Algorithm SJF",avg_cpu,avg_wait,avg_turn,0,0,cpu_util);
+  ALGO_print("Algorithm SJF", avg_cpu, avg_wait, avg_turn, 0, 0, cpu_util);
   return 0;
 }
 /* argv[0] - next_exp.c
@@ -104,20 +107,21 @@ int Shortest_Job_First(int time,float alpha,std::vector<Process> &processes){
  */
 int main(int argc, char **argv)
 {
-  if (argc != 6){
+  if (argc != 6)
+  {
     return EXIT_FAILURE;
   }
   int num_processes = atoi(*(argv + 1));
   int seed = atoi(*(argv + 2));
   double lambda = strtod(*(argv + 3), NULL);
   int upper_bound = atoi(*(argv + 4));
-  float alpha = atof( *(argv + 4));
+  float alpha = atof(*(argv + 4));
   srand48(seed);
 
   std::vector<Process> processes;
 
   for (int i = 0; i < num_processes; i++)
-    generate_process(i, seed, lambda, upper_bound,processes);
+    generate_process(i, seed, lambda, upper_bound, processes);
 
   for (int i = 0; i < num_processes; i++)
   {
@@ -134,7 +138,7 @@ int main(int argc, char **argv)
       std::cout << "\n";
     }*/
   }
-  std::cout <<"Start of simulation\n";
-  Shortest_Job_First(0,alpha,processes);
+  std::cout << "Start of simulation\n";
+  Shortest_Job_First(0, alpha, processes);
   return 0;
 }
