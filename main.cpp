@@ -93,7 +93,7 @@ struct compareProcess {
         return p1.id < p2.id;
     }
 };
-int Shortest_Job_First(int time, float alpha, std::vector<Process> &processes)
+int Shortest_Job_First(float alpha, std::vector<Process> &processes)
 {
   // Calculate all cpu time for all processes using exp avg
  
@@ -102,16 +102,18 @@ int Shortest_Job_First(int time, float alpha, std::vector<Process> &processes)
   // Remove process from arrival
   // Repeat additions to arrival based on cpu time with arrival time
   // Exit when process table is empty and return results
+  int time =0;
   double avg_cpu = 0;
   double avg_wait = 0;
   double avg_turn = 0;
   double cpu_util = 0;
-  std::priority_queue<Process, std::vector<Process>, compareProcess> ready_q;
+  std::priority_queue<Process, std::vector<Process>, compareProcess> ready_state;
+  std::queue<Process> waiting_state;
   std::vector<int> deletes;
   //ADD Ready Processes to Ready Queue
   for(unsigned int i = 0; i < processes.size(); i++){
-    if(time>=processes[i].arrival_time){
-      ready_q.push(processes[i]);
+    if(time==processes[i].arrival_time){//Initial Setup
+      ready_state.push(processes[i]);
       deletes.push_back(processes[i].id);
       std::cout << "Process ID: " << processes[i].id << "\n";
     }
@@ -124,7 +126,10 @@ int Shortest_Job_First(int time, float alpha, std::vector<Process> &processes)
       i--;
     }
   }
-  while(!ready_q.empty() && !processes.empty()){
+  while(!ready_state.empty() && !waiting_state.empty() && !processes.empty()){
+    //RUNNING STATE
+    Process running = ready_state.top();
+    ready_state.pop();
     //Increment Counters with sending to CPU
     //Repition with exponential avg
     //Check exit
@@ -175,6 +180,6 @@ int main(int argc, char **argv)
     }*/
   }
   std::cout << "Start of simulation\n";
-  Shortest_Job_First(0, alpha, processes);
+  Shortest_Job_First(alpha, processes);
   return 0;
 }
