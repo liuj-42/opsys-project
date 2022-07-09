@@ -108,7 +108,7 @@ int Shortest_Job_First(float alpha, std::vector<Process> &processes)
   double avg_turn = 0;
   double cpu_util = 0;
   std::priority_queue<Process, std::vector<Process>, compareProcess> ready_state;
-  std::queue<Process> waiting_state;
+  std::vector<Process> waiting_state;
   std::vector<int> deletes;
   //ADD Ready Processes to Ready Queue
   for(unsigned int i = 0; i < processes.size(); i++){
@@ -126,13 +126,44 @@ int Shortest_Job_First(float alpha, std::vector<Process> &processes)
       i--;
     }
   }
-  while(!ready_state.empty() && !waiting_state.empty() && !processes.empty()){
-    //RUNNING STATE
-    Process running = ready_state.top();
-    ready_state.pop();
-    //Increment Counters with sending to CPU
-    //Repition with exponential avg
-    //Check exit
+
+  //TODO:INCREMENT CORRECT COUNTERS AND ADD IN COMMENT PARTS
+  while(!ready_state.empty() && !waiting_state.empty() && !processes.empty()){ 
+      //CPU RUNNING STATE
+      Process running = ready_state.top();
+      running.cpu_bursts[0].cpu_burst_time--;
+      if(running.cpu_bursts[0].cpu_burst_time ==0){
+        waiting_state.push_back(running);//Need to check
+        ready_state.pop();//need to check
+      }
+      //Handle Waiting Queue
+      for(unsigned int i=0; i< waiting_state.size(); i++){
+        waiting_state[i].cpu_bursts[0].io_burst_time--;
+        if(waiting_state[i].cpu_bursts[0].io_burst_time ==0){
+          waiting_state[i].cpu_bursts_num--;
+          waiting_state[i].cpu_bursts.erase(waiting_state[i].cpu_bursts.begin());
+          //Add to ready queue & sort based on exponential avgerageing
+        }
+      }
+      //ADD IN NEW ARRIVALS
+      //add processes to Ready Queue
+      for(unsigned int i = 0; i < processes.size(); i++){
+        if(time==processes[i].arrival_time){//Initial Setup
+          ready_state.push(processes[i]);
+          deletes.push_back(processes[i].id);
+          std::cout << "Process ID: " << processes[i].id << "\n";
+        }
+      }
+      //Delete From Processes
+      for(unsigned int i=0; i < processes.size(); i++){
+        if(processes[i].id ==deletes[0]){
+          processes.erase(processes.begin()+i);
+          deletes.erase(deletes.begin());
+          i--;
+        }
+      }
+      //Sort READY QUEUE based on exponential avgeraging
+      time++;
   }
   
   if(processes.empty()){
