@@ -7,6 +7,7 @@
 #include <vector>
 #include <utility>
 #include <list>
+#include <queue>
 
 // utility function prototypes (actual functions are at the bottom of the file)
 double next_exp(int seed, double lambda, int upper_bound);
@@ -37,6 +38,7 @@ public:
             
             std::pair<int, int> burst(cpuBurst, ioBurst);
             bursts.push_back(burst);
+            Q.push(burst);
         }
         std::cout << std::endl;
     }
@@ -67,6 +69,7 @@ private:
     // burst.second is IO burst time
     // std::list<std::pair<int, int>> bursts;
     std::list<std::pair<int, int>> bursts;
+    std::queue<std::pair<int, int>> Q;
 };
 
 

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <queue>
+#include <algorithm>
 
 // #include "next_exp.cpp"
 #include "process.h"
@@ -60,8 +62,15 @@ std::string prefix( int time, char pid ) {
 int fcfs( std::vector<Process> processes, int contextSwitch ) {
   int time = 0;
   std::vector<char> queue;
+  std::queue<std::pair<int, int>> q;
+  std::cout << "time 0ms: Simulator started for FCFS [Q: empty]\n";
+  // int arrival = 
+  std::sort( processes.begin(), processes.end(), [](Process a, Process b) {
+        return a.getArrivalTime() < b.getArrivalTime();
+    } );
+
+#if 0
   for ( Process p : processes ) {
-    std::cout << "time " << time << "ms: Simulator started for FCFS [Q: empty]\n";
     time += p.getArrivalTime();
     std::cout << prefix( time, p.getID() ) << "arrived, added to ready queue";
     std::cout << "[Q: " << p.getID() << "]\n";
@@ -83,17 +92,19 @@ int fcfs( std::vector<Process> processes, int contextSwitch ) {
         std::cout << prefix( time, p.getID() )  << "completed I/O; added to ready queue ";
         std::cout << "[Q: " << p.getID() << "]\n";
       }
-
-
-
-      
-      // std::cout << "CPU Burst: " << burstItr->first << "ms  \tIO Burst: " << burstItr->second << "ms\n";
     }
     std::cout << prefix( time, p.getID() ) << "terminated ";
     std::cout << "[Q: empty]\n";
+    time += contextSwitch/2;
+  }
+#endif
+
+  for ( Process p : processes ) {
+    std::cout << "Process " << p.getID() << " with arrival time " << p.getArrivalTime() << std::endl;
   }
 
-  std::cout << "time " << time << "ms: Simulator ended for FCFS [Q: empty]\n";
+
+  // std::cout << "time " << time << "ms: Simulator ended for FCFS [Q: empty]\n";
   // std::cout << "total time: " << time << "ms\n";
 
   return time;
