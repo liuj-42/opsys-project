@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <queue>
+#include <vector>
 #include <algorithm>
 
 // #include "next_exp.cpp"
@@ -51,23 +52,54 @@ int main( int argc, char** argv ) {
 std::string prefix( int time, char pid ) {
   std::string out = "time ";
   out += std::to_string(time);
-  out += "ms; Process ";
+  out += "ms: Process ";
   out += pid;
   out += " ";
   return out;
+}
+
+void printQ( std::queue<Process> Q ) {
+  std::queue<Process> temp = Q;
+  std::cout << "[Q:";
+  if ( temp.empty() ) {
+    std::cout << " empty]\n";
+    return;
+  }
+  while (!(temp.empty())) {
+    Process el = temp.front();
+    std::cout << " " << el.getID();
+    temp.pop();
+  }
+
+  std::cout<< "]\n";
+}
+
+template<typename T>
+void print_queue(T q) { // NB: pass by value so the print uses a copy
+    while(!q.empty()) {
+        std::cout << q.top() << ' ';
+        q.pop();
+    }
+    std::cout << '\n';
 }
 
 // std::string
 
 int fcfs( std::vector<Process> processes, int contextSwitch ) {
   int time = 0;
-  std::vector<char> queue;
-  std::queue<std::pair<int, int>> q;
+  // std::priority_queue<Process> Q;
   std::cout << "time 0ms: Simulator started for FCFS [Q: empty]\n";
-  // int arrival = 
   std::sort( processes.begin(), processes.end(), [](Process a, Process b) {
         return a.getArrivalTime() < b.getArrivalTime();
-    } );
+  });
+  auto cmp = [](Process a, Process b) { return a.getArrivalTime() < b.getArrivalTime(); };
+  std::priority_queue<Process, std::vector<Process>, decltype(cmp)> Q(cmp);
+  for ( Process p : processes ) { Q.push(p); }
+
+  print_queue(Q);
+  
+
+  
 
 #if 0
   for ( Process p : processes ) {
@@ -83,7 +115,6 @@ int fcfs( std::vector<Process> processes, int contextSwitch ) {
       time += burstItr->first;
       std::cout << prefix( time, p.getID() ) << "completed a CPU burst; " << p.getRemainingBursts(index) << (p.getRemainingBursts(index) == 1 ? " burst to go " : " bursts to go ");  
       std::cout << "[Q: empty]\n";
-
       if ( burstItr->second ) {
         std::cout << prefix( time, p.getID() ) << "switching out of CPU, will block on I/O until time " << time + burstItr->second << "ms ";
         std::cout << "[Q: empty]\n";
@@ -98,10 +129,11 @@ int fcfs( std::vector<Process> processes, int contextSwitch ) {
     time += contextSwitch/2;
   }
 #endif
+  
 
-  for ( Process p : processes ) {
-    std::cout << "Process " << p.getID() << " with arrival time " << p.getArrivalTime() << std::endl;
-  }
+  // for ( Process p : processes ) {
+  //   std::cout << "Process " << p.getID() << " with arrival time " << p.getArrivalTime() << std::endl;
+  // }
 
 
   // std::cout << "time " << time << "ms: Simulator ended for FCFS [Q: empty]\n";

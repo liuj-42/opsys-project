@@ -43,12 +43,35 @@ public:
         std::cout << std::endl;
     }
 
+    std::string toStr() {
+        std::string out = "Process ";
+        out += pid;
+        out += ": arrival time ";
+        out += std::to_string(arrival_time);
+        out += "ms; tau";
+        out += "TBD";
+        out += "ms;";
+        out += std::to_string(cpu_bursts_num);
+        out += " CPU bursts\n";
+        
+        return out;
+    }
+
     // getters
     char getID() { return pid; }
     int getArrivalTime() { return arrival_time; }
     int getBurstsNum() { return cpu_bursts_num; }
-    int getRemainingBursts( int index ) { return cpu_bursts_num - index; }
+    int getRemainingBursts() { return cpu_bursts_num - index; }
     const std::list<std::pair<int, int>> getBursts() { return bursts; }
+    bool empty() { return Q.empty(); }
+
+    std::pair<int, int> next() { 
+        std::pair<int, int> burst = Q.front();
+    // std::cout << "process " << burst.first << " " << burst.second << std::endl;
+        index++;
+        Q.pop();
+        return burst;
+    }
 
     // debug
     void printAllBursts() {
@@ -59,10 +82,11 @@ public:
     }
 
 
+    friend std::ostream& operator<<(std::ostream& os, const Process& p);
 
 private:
     char pid;           // Process name
-    // int index = 0;      
+    int index = 0;      
     int arrival_time;   // Arrival time
     int cpu_bursts_num; // Number of bursts
     // burst.first is CPU burst time
@@ -71,6 +95,12 @@ private:
     std::list<std::pair<int, int>> bursts;
     std::queue<std::pair<int, int>> Q;
 };
+
+std::ostream& operator<<(std::ostream& os, const Process& p)
+{
+    os << p.pid << ':' << p.arrival_time;
+    return os;
+}
 
 
 double next_exp(int seed, double lambda, int upper_bound)
