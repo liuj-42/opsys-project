@@ -54,7 +54,6 @@ public:
         out += "ms; ";
         out += std::to_string(cpu_bursts_num);
         out += " CPU bursts";
-        
         return out;
     }
 
@@ -67,10 +66,24 @@ public:
     bool empty() { return Q.empty(); }
 
     std::pair<int, int> next() { 
+        
         std::pair<int, int> burst = Q.front();
-        index++;
-        Q.pop();
+        if ( cpuFinished && ioFinished ) {
+            index++;
+            Q.pop();
+            cpuFinished = false;
+            ioFinished = ( burst.second == 0 ? false : true);
+        } 
         return burst;
+    }
+
+    std::pair<int, int> current() { return Q.front(); }
+
+    void cpuDone() {
+        cpuFinished = true;
+    }
+    void ioDone() {
+        ioFinished = true;
     }
 
     // debug
@@ -87,7 +100,7 @@ public:
 
 private:
     char pid;           // Process name
-    int index = 0;      
+    int index = 1;      
     int arrival_time;   // Arrival time
     int cpu_bursts_num; // Number of bursts
     // burst.first is CPU burst time
@@ -95,8 +108,9 @@ private:
     // std::list<std::pair<int, int>> bursts;
     std::list<std::pair<int, int>> bursts;
     std::queue<std::pair<int, int>> Q;
-
-    std::string out;
+    std::string out = "";
+    bool cpuFinished = false;
+    bool ioFinished = false;
 };
 
 std::ostream& operator<<(std::ostream& os, const Process& p)

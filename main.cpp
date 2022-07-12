@@ -96,7 +96,6 @@ int fcfs( std::vector<Process> processes, int contextSwitch ) {
   std::sort( processes.begin(), processes.end(), [](Process a, Process b) {
         return a.getArrivalTime() < b.getArrivalTime();
   });
-  auto cmp = [](Process a, Process b) { return a.getArrivalTime() > b.getArrivalTime(); };
 
   std::priority_queue<Process> Q;
   // std::priority_queue<Process, std::vector<Process>, decltype(comp)> Q(comp);
@@ -109,15 +108,39 @@ int fcfs( std::vector<Process> processes, int contextSwitch ) {
   Process p = processes.front();
   Q.push(p);
   time += p.getArrivalTime();
-  std::cout << prefix( time, p.getID() ) << "arrived, added to ready queue";
+  std::cout << prefix( time, p.getID() ) << "arrived; added to ready queue ";
   printQ(Q);
 
-
-  // while ( !(Q.empty()) ) {
-  //   // check for processes
-
-    
-  // }
+  while ( !(Q.empty()) ) {
+  // while ( x < 20 ) {
+    // check for processes
+    time += contextSwitch/2;
+    p.next();
+    // std::cout << p.current().first << " " << p.current().second << std::endl;
+    std::cout << prefix( time, p.getID() ) << "started using the CPU for " << p.current().first << "ms burst ";
+    Q.pop();
+    printQ(Q);
+    time += p.current().first;
+    p.cpuDone();
+    if ( p.current().second ) {
+      std::cout << prefix( time, p.getID() ) << "completed a CPU burst; " << p.getRemainingBursts() << (p.getRemainingBursts() == 1 ? " burst to go " : " bursts to go ");
+      printQ(Q);
+      std::cout << prefix( time, p.getID() ) << "switching out of CPU; will block on I/O until time " << time + p.current().second + contextSwitch/2 << "ms ";
+      printQ(Q);
+      time += p.current().second;
+      p.ioDone();
+      time += contextSwitch/2;
+      std::cout << prefix( time, p.getID() ) << "completed I/O; added to ready queue ";
+      Q.push(p);
+      printQ(Q);
+    }
+    p.next();
+    if ( p.empty() ) {
+      std::cout << prefix( time, p.getID() ) << "terminated ";
+      printQ(Q);
+      time += contextSwitch/2;
+    }
+  }
   
 
   
@@ -150,14 +173,9 @@ int fcfs( std::vector<Process> processes, int contextSwitch ) {
     time += contextSwitch/2;
   }
 #endif
-  
-
-  // for ( Process p : processes ) {
-  //   std::cout << "Process " << p.getID() << " with arrival time " << p.getArrivalTime() << std::endl;
-  // }
 
 
-  // std::cout << "time " << time << "ms: Simulator ended for FCFS [Q: empty]\n";
+  std::cout << "time " << time << "ms: Simulator ended for FCFS [Q: empty]\n";
   // std::cout << "total time: " << time << "ms\n";
 
   return time;
