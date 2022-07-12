@@ -58,32 +58,36 @@ std::string prefix( int time, char pid ) {
   return out;
 }
 
-void printQ( std::queue<Process> Q ) {
-  std::queue<Process> temp = Q;
+
+
+void printQ( std::priority_queue<Process> Q ) {
   std::cout << "[Q:";
-  if ( temp.empty() ) {
+  if ( Q.empty() ) {
     std::cout << " empty]\n";
     return;
   }
-  while (!(temp.empty())) {
-    Process el = temp.front();
+  while (!(Q.empty())) {
+    Process el = Q.top();
     std::cout << " " << el.getID();
-    temp.pop();
+    Q.pop();
   }
 
   std::cout<< "]\n";
 }
 
 template<typename T>
-void print_queue(T q) { // NB: pass by value so the print uses a copy
+void pretty_print(T q) { // NB: pass by value so the print uses a copy
     while(!q.empty()) {
-        std::cout << q.top() << ' ';
+        std::cout << q.top() << std::endl;
         q.pop();
     }
     std::cout << '\n';
 }
 
+
 // std::string
+
+
 
 int fcfs( std::vector<Process> processes, int contextSwitch ) {
   int time = 0;
@@ -92,11 +96,28 @@ int fcfs( std::vector<Process> processes, int contextSwitch ) {
   std::sort( processes.begin(), processes.end(), [](Process a, Process b) {
         return a.getArrivalTime() < b.getArrivalTime();
   });
-  auto cmp = [](Process a, Process b) { return a.getArrivalTime() < b.getArrivalTime(); };
-  std::priority_queue<Process, std::vector<Process>, decltype(cmp)> Q(cmp);
-  for ( Process p : processes ) { Q.push(p); }
+  auto cmp = [](Process a, Process b) { return a.getArrivalTime() > b.getArrivalTime(); };
 
-  print_queue(Q);
+  std::priority_queue<Process> Q;
+  // std::priority_queue<Process, std::vector<Process>, decltype(comp)> Q(comp);
+
+
+  // for ( Process p : processes ) { Q.push(p); }
+
+
+
+  Process p = processes.front();
+  Q.push(p);
+  time += p.getArrivalTime();
+  std::cout << prefix( time, p.getID() ) << "arrived, added to ready queue";
+  printQ(Q);
+
+
+  // while ( !(Q.empty()) ) {
+  //   // check for processes
+
+    
+  // }
   
 
   

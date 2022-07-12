@@ -41,6 +41,7 @@ public:
             Q.push(burst);
         }
         std::cout << std::endl;
+        out = toStr();
     }
 
     std::string toStr() {
@@ -48,11 +49,11 @@ public:
         out += pid;
         out += ": arrival time ";
         out += std::to_string(arrival_time);
-        out += "ms; tau";
+        out += "ms; tau ";
         out += "TBD";
-        out += "ms;";
+        out += "ms; ";
         out += std::to_string(cpu_bursts_num);
-        out += " CPU bursts\n";
+        out += " CPU bursts";
         
         return out;
     }
@@ -67,7 +68,6 @@ public:
 
     std::pair<int, int> next() { 
         std::pair<int, int> burst = Q.front();
-    // std::cout << "process " << burst.first << " " << burst.second << std::endl;
         index++;
         Q.pop();
         return burst;
@@ -83,6 +83,7 @@ public:
 
 
     friend std::ostream& operator<<(std::ostream& os, const Process& p);
+    friend bool operator< ( const Process& a, const Process& b);
 
 private:
     char pid;           // Process name
@@ -94,12 +95,20 @@ private:
     // std::list<std::pair<int, int>> bursts;
     std::list<std::pair<int, int>> bursts;
     std::queue<std::pair<int, int>> Q;
+
+    std::string out;
 };
 
 std::ostream& operator<<(std::ostream& os, const Process& p)
 {
-    os << p.pid << ':' << p.arrival_time;
+    // os << p.pid << ': ' << p.arrival_time;
+    os << p.out;
     return os;
+}
+
+bool operator< ( const Process& a, const Process& b) 
+{
+    return a.arrival_time > b.arrival_time;
 }
 
 
