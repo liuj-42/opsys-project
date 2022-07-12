@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <queue>
 
-double exponential_avgeraging(float alpha, float t, float tau)
+double exponential_avgeraging(float alpha, float actual_burst, float estimated_burst)
 {
-  double estimate = alpha * t + ((1 - alpha) * tau);
+  double estimate = alpha * actual_burst + ((1 - alpha) * estimated_burst);
   return estimate;
 }
 
@@ -38,6 +38,7 @@ struct Process
   int id;
   int arrival_time;
   int cpu_bursts_num;
+  int current_burst = 0;
   std::vector<CPUBurst> cpu_bursts;
 };
 
@@ -110,64 +111,62 @@ int Shortest_Job_First(float alpha, std::vector<Process> &processes)
   std::priority_queue<Process, std::vector<Process>, compareProcess> ready_state;
   std::vector<Process> waiting_state;
   std::vector<int> deletes;
-  //ADD Ready Processes to Ready Queue
-  for(unsigned int i = 0; i < processes.size(); i++){
-    if(time==processes[i].arrival_time){//Initial Setup
-      ready_state.push(processes[i]);
-      deletes.push_back(processes[i].id);
-      std::cout << "Process ID: " << processes[i].id << "\n";
-    }
-  }
-  //Delete From Processes
-  for(unsigned int i=0; i < processes.size(); i++){
-    if(processes[i].id ==deletes[0]){
-      processes.erase(processes.begin()+i);
-      deletes.erase(deletes.begin());
-      i--;
-    }
-  }
-
   //TODO:INCREMENT CORRECT COUNTERS AND ADD IN COMMENT PARTS
-  while(!ready_state.empty() && !waiting_state.empty() && !processes.empty()){ 
+  while(1){ 
+       std::cout << "TIME: " << time << " ms\n";
+       std::cout << "   Processes: " << processes.size() << "\n";
+       std::cout << "   Waiting_Q: " << waiting_state.size() << "\n";
+       for(unsigned int i =0; i < waiting_state.size(); i++){
+        std::cout<<"\t   ID:"<<waiting_state[i].id<<" is on "<<waiting_state[i].current_burst << "with "<<waiting_state[i].cpu_bursts[waiting_state[i].current_burst].io_burst_time<<"\n";
+       }
+       std::cout << "   ready_state: " << ready_state.size() << "\n";
+      //ADD new Arrivals to Ready Queue
+      if(!processes.empty()){
+        for(unsigned int i = 0; i < processes.size(); i++){
+          if(time==processes[i].arrival_time){//Initial Setup
+            ready_state.push(processes[i]);
+            deletes.push_back(processes[i].id);
+            std::cout << "Process ID: " << processes[i].id << "\n";
+          }
+        }
+        //Delete From Processes
+        for(unsigned int i=0; i < processes.size(); i++){
+          if(processes[i].id ==deletes[0]){
+            processes.erase(processes.begin()+i);
+            deletes.erase(deletes.begin());
+            i--;
+          }
+        }
+      }
+
       //CPU RUNNING STATE
-      Process running = ready_state.top();
-      running.cpu_bursts[0].cpu_burst_time--;
-      if(running.cpu_bursts[0].cpu_burst_time ==0){
-        waiting_state.push_back(running);//Need to check
-        ready_state.pop();//need to check
+      if(!ready_state.empty()){
+        Process running = ready_state.top();        
+        if(running.cpu_bursts[running.current_burst].cpu_burst_time ==0){
+          if(running.current_burst != running.cpu_bursts_num){
+            waiting_state.push_back(running);//Need to check
+          }        
+          ready_state.pop();//need to check
+        }
+        running.cpu_bursts[running.current_burst].cpu_burst_time--;
       }
+
       //Handle Waiting Queue
-      for(unsigned int i=0; i< waiting_state.size(); i++){
-        waiting_state[i].cpu_bursts[0].io_burst_time--;
-        if(waiting_state[i].cpu_bursts[0].io_burst_time ==0){
-          waiting_state[i].cpu_bursts_num--;
-          waiting_state[i].cpu_bursts.erase(waiting_state[i].cpu_bursts.begin());
-          //Add to ready queue & sort based on exponential avgerageing
+      for(unsigned int i=0; i< waiting_state.size(); i++){        
+        if(waiting_state[i].cpu_bursts[waiting_state[i].current_burst].io_burst_time ==0){
+          waiting_state[i].current_burst++;
+          ready_state.push(waiting_state[i]);         
+          waiting_state.erase(waiting_state.begin()+i);
         }
+        waiting_state[i].cpu_bursts[waiting_state[i].current_burst].io_burst_time--;
       }
-      //ADD IN NEW ARRIVALS
-      //add processes to Ready Queue
-      for(unsigned int i = 0; i < processes.size(); i++){
-        if(time==processes[i].arrival_time){//Initial Setup
-          ready_state.push(processes[i]);
-          deletes.push_back(processes[i].id);
-          std::cout << "Process ID: " << processes[i].id << "\n";
-        }
-      }
-      //Delete From Processes
-      for(unsigned int i=0; i < processes.size(); i++){
-        if(processes[i].id ==deletes[0]){
-          processes.erase(processes.begin()+i);
-          deletes.erase(deletes.begin());
-          i--;
-        }
-      }
-      //Sort READY QUEUE based on exponential avgeraging
+
       time++;
-  }
-  
-  if(processes.empty()){
-    ALGO_print("Algorithm SJF", avg_cpu, avg_wait, avg_turn, 0, 0, cpu_util);
+
+    if(processes.empty() && waiting_state.empty() && ready_state.empty()){
+      ALGO_print("Algorithm SJF", avg_cpu, avg_wait, avg_turn, 0, 0, cpu_util);
+      return 0;
+    }
   }  
   return 0;
 }
@@ -199,7 +198,7 @@ int main(int argc, char **argv)
   {
     std::cout << "Process ID: " << i << "\n";
     std::cout << "Arrival Time: " << processes[i].arrival_time << "ms\n";
-    /*
+    
     std::cout << "Num. of CPU Bursts: " << processes[i].cpu_bursts_num << "\n";
     std::cout << "CPU Bursts: \n\n";
     for (int c = 0; c < processes[i].cpu_bursts_num; c++)
@@ -208,7 +207,7 @@ int main(int argc, char **argv)
       std::cout << "CPU Burst Time: " << processes[i].cpu_bursts[c].cpu_burst_time << "ms\n";
       std::cout << "I/O Burst Time: " << processes[i].cpu_bursts[c].io_burst_time << "ms\n";
       std::cout << "\n";
-    }*/
+    }
   }
   std::cout << "Start of simulation\n";
   Shortest_Job_First(alpha, processes);
