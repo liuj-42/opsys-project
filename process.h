@@ -72,8 +72,6 @@ public:
       last_est_burst = alpha * last_actual_cpu_burst + ((1 - alpha) * last_est_burst);
       return last_est_burst;
     }
-
-
     // getters
     char getID() { return pid; }
     int getArrivalTime() { return arrival_time; }

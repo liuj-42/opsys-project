@@ -162,7 +162,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
         it++;
       }
       std::pair<int, int> burst = *it;
-      std::cout << "Burst Left:" << burst.first << "\n";
+      std::cout << "Burst Left:" << burst.first << "\n";//PROBLEM: BURST DOES NOT DECREASE
       if (burst.first == 0)
       {
         if (running.getRemainingBursts() == 1)
@@ -172,7 +172,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
 
         ready_state.pop(); // need to check
       }
-      it->first--;
+      burst.first--;
     }
 
     // Handle Waiting Queue
