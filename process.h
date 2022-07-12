@@ -18,7 +18,7 @@ class Process
 
 public:
     int index = 0;
-    std::list<std::pair<int, int>> bursts;
+    std::vector<std::pair<int, int>> bursts;
     Process(char id, int seed, double lambda, int upper_bound,float alpha_num)
     {
         pid = id;
@@ -63,7 +63,7 @@ public:
       if(index ==0){
         return (float)(int)pid;
       }
-      std::list<std::pair<int, int>>::iterator it= bursts.begin();
+      std::vector<std::pair<int, int>>::iterator it= bursts.begin();
       for(int i=0; i < index-1; i++){
         it++;
       }
@@ -77,7 +77,7 @@ public:
     int getArrivalTime() { return arrival_time; }
     int getBurstsNum() { return cpu_bursts_num; }
     int getRemainingBursts() { return cpu_bursts_num - index; }
-    const std::list<std::pair<int, int>> getBursts() { return bursts; }
+    const std::vector<std::pair<int, int>> getBursts() { return bursts; }
     bool empty() { return Q.empty(); }
 
     std::pair<int, int> next() { 

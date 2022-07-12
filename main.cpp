@@ -96,16 +96,12 @@ void print_queue(T q)
   std::cout << '\n';
 }
 
-int sjf(std::vector<Process> processes, int contextSwitch)
+int sjf(std::vector<Process> &processes, int contextSwitch)
 {
   int time = 0;
   // std::priority_queue<Process> Q;
   std::cout << "time 0ms: Simulator started for SJF [Q: empty]\n";
-  std::sort(processes.begin(), processes.end(), [](Process a, Process b)
-            { return a.exponential_averaging() < b.exponential_averaging(); });
-  auto cmp = [](Process a, Process b)
-  { return a.exponential_averaging() < b.exponential_averaging(); };
-  std::priority_queue<Process, std::vector<Process>, decltype(cmp)> ready_state(cmp);
+  std::vector<Process> ready_state;
 
   // print_queue(ready_state);
   double avg_cpu = 0;
@@ -136,7 +132,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
       {
         if (time == processes[i].getArrivalTime())
         { // Initial Setup
-          ready_state.push(processes[i]);
+          ready_state.push_back(processes[i]);//dont forget to sort ready state
           deletes.push_back(processes[i].getID());
           std::cout << "Process ID: " << processes[i].getID() << "\n";
         }
@@ -155,42 +151,29 @@ int sjf(std::vector<Process> processes, int contextSwitch)
     // CPU RUNNING STATE
     if (!ready_state.empty())
     {
-      Process running = ready_state.top();
-      std::list<std::pair<int, int>>::iterator it = running.bursts.begin();
-      for (int i = 0; i < running.index; i++)
-      {
-        it++;
-      }
-      std::pair<int, int> burst = *it;
-      std::cout << "Burst Left:" << burst.first << "\n";//PROBLEM: BURST DOES NOT DECREASE
-      if (burst.first == 0)
+      Process running = ready_state.front();      
+      std::cout << "Burst Left:" << running.bursts[running.index].first << "\n";//PROBLEM: BURST DOES NOT DECREASE
+      if (running.bursts[running.index].first == 0)
       {
         if (running.getRemainingBursts() == 1)
         {
           waiting_state.push_back(running); // Need to check
         }
-
-        ready_state.pop(); // need to check
+        ready_state.erase(ready_state.begin()); // need to check
       }
-      burst.first--;
+     running.bursts[running.index].first--;
     }
 
     // Handle Waiting Queue
     for (unsigned int i = 0; i < waiting_state.size(); i++)
     {
-      std::list<std::pair<int, int>>::iterator it = waiting_state[i].bursts.begin();
-      for (int i = 0; i < waiting_state[i].index; i++)
-      {
-        it++;
-      }
-      std::pair<int, int> burst = *it;
-      if (burst.second == 0)
+      if (waiting_state[i].bursts[waiting_state[i].index].second == 0)
       {
         waiting_state[i].index++;
-        ready_state.push(waiting_state[i]);
+        ready_state.push_back(waiting_state[i]);
         waiting_state.erase(waiting_state.begin() + i);
       }
-      it->second--;
+      waiting_state[i].bursts[waiting_state[i].index].second--;
     }
 
     time++;
