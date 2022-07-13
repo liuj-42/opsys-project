@@ -55,6 +55,8 @@ int main(int argc, char **argv)
   // FCFS
   // time += fcfs( processes, contextSwitch );
   time += sjf(processes, contextSwitch);
+  std::cout<<"TIME"<<time<<"\n";
+  return 0;
 }
 std::string prefix(int time, char pid)
 {
@@ -86,17 +88,16 @@ void printQ(std::queue<Process> Q)
 }
 
 template <typename T>
-void print_queue(T q)
+void print_queue(std::vector<Process> q)
 { // NB: pass by value so the print uses a copy
-  while (!q.empty())
+  for(unsigned int i=0; i< q.size(); i++)
   {
-    std::cout << q.top() << ' ';
-    q.pop();
+    std::cout << q[i] << ' ';
   }
   std::cout << '\n';
 }
 
-int sjf(std::vector<Process> &processes, int contextSwitch)
+int sjf(std::vector<Process> processes, int contextSwitch)
 {
   int time = 0;
   // std::priority_queue<Process> Q;
@@ -108,23 +109,22 @@ int sjf(std::vector<Process> &processes, int contextSwitch)
   double avg_wait = 0;
   double avg_turn = 0;
   double cpu_util = 0;
+  int cpu_burst_msg_counter=0;
   std::vector<Process> waiting_state;
   std::vector<char> deletes;
-
+  int running = 0;
   while (1)
-  {
-    if (!waiting_state.empty() || !ready_state.empty())
-    {
+  {   
+    /*
       std::cout << "TIME: " << time << " ms\n";
       std::cout << "   Processes: " << processes.size() << "\n";
       std::cout << "   Waiting_Q: " << waiting_state.size() << "\n";
       for (unsigned int i = 0; i < waiting_state.size(); i++)
       {
-        std::cout << "\t   ID:" << waiting_state[i].getID() << " is on " << waiting_state[i].index << "with " << waiting_state[i].next().second << "\n";
+        std::cout << "\t   ID:" << waiting_state[i].getID() << " is on " << waiting_state[i].index << "with " << waiting_state[i].bursts[waiting_state[i].index].second << "\n";
       }
       std::cout << "   ready_state: " << ready_state.size() << "\n";
-    }
-
+    */
     // ADD new Arrivals to Ready Queue
     if (!processes.empty())
     {
@@ -134,7 +134,7 @@ int sjf(std::vector<Process> &processes, int contextSwitch)
         { // Initial Setup
           ready_state.push_back(processes[i]);//dont forget to sort ready state
           deletes.push_back(processes[i].getID());
-          std::cout << "Process ID: " << processes[i].getID() << "\n";
+          std::cout << prefix( time, processes[i].getID() ) << "arrived; added to ready queue \n";
         }
       }
       // Delete From Processes
@@ -148,20 +148,40 @@ int sjf(std::vector<Process> &processes, int contextSwitch)
         }
       }
     }
+    //Calculate tau values for all processes in ready_state
+    //find the lowest estimate
+    int index_lowest_est =0;
+    int estimate = INT_MAX;
+    for(unsigned int i=0; i<ready_state.size();i++){
+      int value = ready_state[i].exponential_averaging();
+      if(estimate > value){
+        estimate = value;
+        index_lowest_est = i;
+      }
+    }
     // CPU RUNNING STATE
     if (!ready_state.empty())
-    {
-      Process running = ready_state.front();      
-      std::cout << "Burst Left:" << running.bursts[running.index].first << "\n";//PROBLEM: BURST DOES NOT DECREASE
-      if (running.bursts[running.index].first == 0)
-      {
-        if (running.getRemainingBursts() == 1)
-        {
-          waiting_state.push_back(running); // Need to check
-        }
-        ready_state.erase(ready_state.begin()); // need to check
+    {     
+      if(cpu_burst_msg_counter == 0){
+        std::cout << prefix( time, ready_state[0].getID() ) << "started using the CPU for " << ready_state[0].bursts[ready_state[0].index].first << "ms burst \n";
+        cpu_burst_msg_counter = ready_state[0].bursts[ready_state[0].index].first;
+      }else{
+        cpu_burst_msg_counter--;
       }
-     running.bursts[running.index].first--;
+      if (ready_state[0].bursts[ready_state[0].index].first == 0)
+      {
+        if (ready_state[0].getRemainingBursts() != 1)
+        {
+          waiting_state.push_back(ready_state[0]); 
+        }
+        ready_state.erase(ready_state.begin()); 
+        if (!ready_state.empty()){
+          ready_state.insert(0,);//TODO: ADD in insert
+        }
+        
+      }else{
+        ready_state[0].bursts[ready_state[0].index].first--;
+      }     
     }
 
     // Handle Waiting Queue
@@ -172,8 +192,9 @@ int sjf(std::vector<Process> &processes, int contextSwitch)
         waiting_state[i].index++;
         ready_state.push_back(waiting_state[i]);
         waiting_state.erase(waiting_state.begin() + i);
-      }
-      waiting_state[i].bursts[waiting_state[i].index].second--;
+      }else{
+        waiting_state[i].bursts[waiting_state[i].index].second--;
+      }      
     }
 
     time++;

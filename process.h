@@ -18,6 +18,7 @@ class Process
 
 public:
     int index = 0;
+    float last_est_burst =0;
     std::vector<std::pair<int, int>> bursts;
     Process(char id, int seed, double lambda, int upper_bound,float alpha_num)
     {
@@ -61,14 +62,9 @@ public:
     }
     float exponential_averaging(){
       if(index ==0){
-        return (float)(int)pid;
+        return 1/alpha;
       }
-      std::vector<std::pair<int, int>>::iterator it= bursts.begin();
-      for(int i=0; i < index-1; i++){
-        it++;
-      }
-      std::pair<int, int> last_burst = *it;
-      int last_actual_cpu_burst = last_burst.first;
+      int last_actual_cpu_burst = bursts[index-1].first;
       last_est_burst = alpha * last_actual_cpu_burst + ((1 - alpha) * last_est_burst);
       return last_est_burst;
     }
@@ -109,7 +105,7 @@ private:
     // std::list<std::pair<int, int>> bursts;
     //std::list<std::pair<int, int>> bursts;
     std::queue<std::pair<int, int>> Q;
-    float last_est_burst =0;
+    
     int alpha;
 };
 
