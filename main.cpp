@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <vector>
 #include <algorithm>
-
+#include <climits>
 // #include "next_exp.cpp"
 #include "process.h"
 char alphabet[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
@@ -58,13 +58,16 @@ int main(int argc, char **argv)
   std::cout<<"TIME"<<time<<"\n";
   return 0;
 }
-std::string prefix(int time, char pid)
+std::string prefix(int time, char pid,float tau)
 {
   std::string out = "time ";
   out += std::to_string(time);
   out += "ms: Process ";
   out += pid;
   out += " ";
+  out +="(tau ";
+  out += std::to_string(tau);
+  out +="ms) ";
   return out;
 }
 
@@ -112,7 +115,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   int cpu_burst_msg_counter=0;
   std::vector<Process> waiting_state;
   std::vector<char> deletes;
-  int running = 0;
+  int value=0;
   while (1)
   {   
     /*
@@ -134,7 +137,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
         { // Initial Setup
           ready_state.push_back(processes[i]);//dont forget to sort ready state
           deletes.push_back(processes[i].getID());
-          std::cout << prefix( time, processes[i].getID() ) << "arrived; added to ready queue \n";
+          std::cout << prefix( time, processes[i].getID(),processes[i].old_tau ) << "arrived; added to ready queue \n";
         }
       }
       // Delete From Processes
@@ -150,34 +153,36 @@ int sjf(std::vector<Process> processes, int contextSwitch)
     }
     //Calculate tau values for all processes in ready_state
     //find the lowest estimate
-    int index_lowest_est =0;
-    int estimate = INT_MAX;
-    for(unsigned int i=0; i<ready_state.size();i++){
-      int value = ready_state[i].exponential_averaging();
-      if(estimate > value){
-        estimate = value;
-        index_lowest_est = i;
-      }
-    }
+    
     // CPU RUNNING STATE
     if (!ready_state.empty())
     {     
       if(cpu_burst_msg_counter == 0){
-        std::cout << prefix( time, ready_state[0].getID() ) << "started using the CPU for " << ready_state[0].bursts[ready_state[0].index].first << "ms burst \n";
+        ready_state[0].exponential_averaging();
+        std::cout << prefix( time, ready_state[0].getID(),ready_state[0].old_tau ) << "started using the CPU for " << ready_state[0].bursts[ready_state[0].index].first << "ms burst\n";
         cpu_burst_msg_counter = ready_state[0].bursts[ready_state[0].index].first;
       }else{
         cpu_burst_msg_counter--;
       }
       if (ready_state[0].bursts[ready_state[0].index].first == 0)
       {
+        std::cout << prefix( time, ready_state[0].getID(),ready_state[0].old_tau ) << "completed a CPU burst; " << ready_state[0].getRemainingBursts()-1 << (ready_state[0].getRemainingBursts()-1 == 1 ? " burst to go " : " bursts to go\n");
         if (ready_state[0].getRemainingBursts() != 1)
         {
           waiting_state.push_back(ready_state[0]); 
+          std::cout << prefix( time, ready_state[0].getID(),ready_state[0].old_tau ) << "switching out of CPU; will block on I/O until time " << time + ready_state[0].bursts[ready_state[0].index].second + contextSwitch/2<< "ms\n";
         }
-        ready_state.erase(ready_state.begin()); 
-        if (!ready_state.empty()){
-          ready_state.insert(0,);//TODO: ADD in insert
-        }
+        if(ready_state.size()>1){
+          int index_lowest_est=0;
+          int lowest_estimate = INT_MAX;
+          for(unsigned int i = 0; i < ready_state.size(); i++){
+            if(ready_state[i].old_tau < lowest_estimate){lowest_estimate = ready_state[i].old_tau; index_lowest_est = i;}
+          }
+          std::iter_swap(ready_state.begin()+index_lowest_est,ready_state.begin());
+          ready_state.erase(ready_state.begin()+index_lowest_est); 
+        }else{
+          ready_state.erase(ready_state.begin()); 
+        }        
         
       }else{
         ready_state[0].bursts[ready_state[0].index].first--;

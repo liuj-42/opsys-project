@@ -18,12 +18,14 @@ class Process
 
 public:
     int index = 0;
-    float last_est_burst =0;
+    int last_est_burst =0;
     std::vector<std::pair<int, int>> bursts;
+    float old_tau;
     Process(char id, int seed, double lambda, int upper_bound,float alpha_num)
     {
         pid = id;
         alpha = alpha_num;
+        old_tau = (float)1/lambda;
         arrival_time = floor(next_exp(seed, lambda, upper_bound));
         cpu_bursts_num = ceil(next_unif(seed));
         std::cout << "Process " << pid << ": arrival time " << arrival_time << "ms; tau " << "TBD" << "ms; " << cpu_bursts_num << " CPU bursts:" << std::endl;
@@ -60,12 +62,14 @@ public:
         
         return out;
     }
-    float exponential_averaging(){
+    int exponential_averaging(){
       if(index ==0){
-        return 1/alpha;
+        last_est_burst = old_tau;
+        return old_tau;
       }
       int last_actual_cpu_burst = bursts[index-1].first;
-      last_est_burst = alpha * last_actual_cpu_burst + ((1 - alpha) * last_est_burst);
+      old_tau = last_est_burst;
+      last_est_burst = ceil(alpha * last_actual_cpu_burst + ((1 - alpha) * last_est_burst));
       return last_est_burst;
     }
     // getters
@@ -106,7 +110,7 @@ private:
     //std::list<std::pair<int, int>> bursts;
     std::queue<std::pair<int, int>> Q;
     
-    int alpha;
+    float alpha;
 };
 
 std::ostream& operator<<(std::ostream& os, const Process& p)
