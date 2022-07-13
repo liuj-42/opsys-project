@@ -21,10 +21,10 @@ int main( int argc, char** argv ) {
   double lambda = strtod(*(argv + 3), NULL);
   int upperBound = atoi(*(argv + 4));
   float contextSwitch = atof( *(argv + 5) );
-  float alpha = atof( *(argv + 6) );
-  float timeSlice = atof( *(argv + 7) );
+  // float alpha = atof( *(argv + 6) );
+  // float timeSlice = atof( *(argv + 7) );
 
-#if 1 // debugging
+#if 0 // debugging
   std::string names[7] = { "processes\t\t\t", "seed\t\t\t\t", "lambda\t\t\t\t", "upper bound\t\t\t", "context switch time\t", "alpha\t\t\t\t", "time slice\t\t\t" };
 
   for ( int i = 0; i < 7; i++ ) {
@@ -57,8 +57,9 @@ std::string prefix( int time, char pid ) {
   out += " ";
   return out;
 }
-
-
+void printQ( std::priority_queue<Process> Q );
+void printQ( std::priority_queue<Process> &Q, std::vector<Process> &processes, int &time, int nextTime );
+Process addNewProcess( std::vector<Process> &processes, std::priority_queue<Process> &Q );
 
 void printQ( std::priority_queue<Process> Q ) {
   std::cout << "[Q:";
@@ -71,8 +72,39 @@ void printQ( std::priority_queue<Process> Q ) {
     std::cout << " " << el.getID();
     Q.pop();
   }
-
   std::cout<< "]\n";
+}
+
+void printQ( std::priority_queue<Process> &Q, std::vector<Process> &processes, int &time, int nextTime ) {
+  std::cout << "test ";
+  std::cout << "[Q:";
+  if ( Q.empty() ) {
+    std::cout << " empty]\n";
+  } else {
+    while (!(Q.empty())) {
+      Process el = Q.top();
+      std::cout << " " << el.getID();
+      Q.pop();
+    };
+    std::cout<< "]\n";
+  }
+
+  Process p = processes.front();
+  if ( time + nextTime > p.getArrivalTime() ) {
+    addNewProcess( processes, Q );
+    // time = p.getArrivalTime();
+  }
+
+}
+
+Process addNewProcess( std::vector<Process> &processes, std::priority_queue<Process> &Q ) {
+  Process p = processes.front();
+  Q.push(p);
+  processes.erase( processes.begin() );
+
+  std::cout << prefix( p.getArrivalTime(), p.getID() ) << "arrived; added to ready queue ";
+  printQ(Q);
+  return p;
 }
 
 template<typename T>
@@ -84,39 +116,65 @@ void pretty_print(T q) { // NB: pass by value so the print uses a copy
     std::cout << '\n';
 }
 
+template<typename T>
+void pretty_print( std::vector<T> v ) {
+  for ( T t : v ) {
+    std::cout << t << std::endl;
+  }
+}
 
-// std::string
-
+bool finished( std::vector<Process> P ) {
+  for ( Process p : P ) {
+    if ( !p.empty() ) { return false; }
+  }
+  return true;
+}
 
 
 int fcfs( std::vector<Process> processes, int contextSwitch ) {
-  int time = 0;
-  // std::priority_queue<Process> Q;
+  // int time = 0;
+  const std::vector<Process> P = processes;
   std::cout << "time 0ms: Simulator started for FCFS [Q: empty]\n";
-  std::sort( processes.begin(), processes.end(), [](Process a, Process b) {
-        return a.getArrivalTime() < b.getArrivalTime();
-  });
+  std::sort( processes.begin(), processes.end(), std::greater<>() );
+
+  pretty_print( processes );
+
 
   std::priority_queue<Process> Q;
-  // std::priority_queue<Process, std::vector<Process>, decltype(comp)> Q(comp);
+
+  Process p = addNewProcess( processes, Q );
+
+  int time = p.getArrivalTime();
+
+  // while ( !(finished( P ) ) ) {
+    Q.pop();
+    time += contextSwitch/2;
+    std::cout << prefix( time, p.getID() ) << "started using the CPU for " << p.current().first << "ms burst ";
+    printQ(Q, processes, time, p.current().first );
+    time += p.current().first;
+    std::cout << prefix( time, p.getID() ) << "completed a CPU burst; " << p.getRemainingBursts() << (p.getRemainingBursts() == 1 ? " burst to go " : " bursts to go ");
+    printQ(Q);
+    std::cout << prefix( time, p.getID() ) << "switching out of CPU; will block on I/O until time " << time + p.current().second + contextSwitch/2<< "ms ";
+    printQ(Q, processes, time, p.current().second );
+    if ( !(Q.empty() )) {
+      // if there are other processes in the queue that can do something then have them do stuff
+      //  first come first serve -> we only look at the next process in the queue
+      p = Q.top();
+      Q.pop();
+      // we remember the time that the other process has finished 
+      // continue;
+    }
 
 
-  // for ( Process p : processes ) { Q.push(p); }
+  // }
 
 
 
-  Process p = processes.front();
-  Q.push(p);
-  time += p.getArrivalTime();
-  std::cout << prefix( time, p.getID() ) << "arrived; added to ready queue ";
-  printQ(Q);
 
+#if 0 // this works for one input
   while ( !(Q.empty()) ) {
-  // while ( x < 20 ) {
-    // check for processes
     time += contextSwitch/2;
     p.next();
-    // std::cout << p.current().first << " " << p.current().second << std::endl;
     std::cout << prefix( time, p.getID() ) << "started using the CPU for " << p.current().first << "ms burst ";
     Q.pop();
     printQ(Q);
@@ -141,42 +199,9 @@ int fcfs( std::vector<Process> processes, int contextSwitch ) {
       time += contextSwitch/2;
     }
   }
-  
-
-  
-
-#if 0
-  for ( Process p : processes ) {
-    time += p.getArrivalTime();
-    std::cout << prefix( time, p.getID() ) << "arrived, added to ready queue";
-    std::cout << "[Q: " << p.getID() << "]\n";
-    std::list<std::pair<int, int>> bursts = p.getBursts();
-    int index = 0;
-    for ( auto burstItr = bursts.begin(); burstItr != bursts.end(); burstItr++, index++ ) {
-      time += contextSwitch/2;
-      std::cout << prefix( time, p.getID() ) << "started using the CPU for " << burstItr->first << "ms burst ";
-      std::cout << "[Q: empty]\n";
-      time += burstItr->first;
-      std::cout << prefix( time, p.getID() ) << "completed a CPU burst; " << p.getRemainingBursts(index) << (p.getRemainingBursts(index) == 1 ? " burst to go " : " bursts to go ");  
-      std::cout << "[Q: empty]\n";
-      if ( burstItr->second ) {
-        std::cout << prefix( time, p.getID() ) << "switching out of CPU, will block on I/O until time " << time + burstItr->second << "ms ";
-        std::cout << "[Q: empty]\n";
-        time += burstItr->second;
-        time += contextSwitch/2;
-        std::cout << prefix( time, p.getID() )  << "completed I/O; added to ready queue ";
-        std::cout << "[Q: " << p.getID() << "]\n";
-      }
-    }
-    std::cout << prefix( time, p.getID() ) << "terminated ";
-    std::cout << "[Q: empty]\n";
-    time += contextSwitch/2;
-  }
 #endif
 
-
   std::cout << "time " << time << "ms: Simulator ended for FCFS [Q: empty]\n";
-  // std::cout << "total time: " << time << "ms\n";
 
   return time;
 }

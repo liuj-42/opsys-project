@@ -40,8 +40,8 @@ public:
             bursts.push_back(burst);
             Q.push(burst);
         }
-        std::cout << std::endl;
-        out = toStr();
+        // out = toStr();
+        out = currentBurst();
     }
 
     std::string toStr() {
@@ -63,10 +63,20 @@ public:
     int getBurstsNum() { return cpu_bursts_num; }
     int getRemainingBursts() { return cpu_bursts_num - index; }
     const std::list<std::pair<int, int>> getBursts() { return bursts; }
+    bool isCpuDone() { return cpuFinished; }
+    bool isioDone() { return ioFinished; }
     bool empty() { return Q.empty(); }
 
+    // modifiers
+    void cpuDone( int time ) { 
+        std::cout << "time " << time << "ms: Process " << pid << " completed a CPU burst; " << getRemainingBursts() << (getRemainingBursts() == 1 ? " burst to go " : " bursts to go "); 
+        cpuFinished = true; 
+    }
+    void ioDone( int time ) { ioFinished = true; }
+
+    
+
     std::pair<int, int> next() { 
-        
         std::pair<int, int> burst = Q.front();
         if ( cpuFinished && ioFinished ) {
             index++;
@@ -79,12 +89,8 @@ public:
 
     std::pair<int, int> current() { return Q.front(); }
 
-    void cpuDone() {
-        cpuFinished = true;
-    }
-    void ioDone() {
-        ioFinished = true;
-    }
+
+
 
     // debug
     void printAllBursts() {
@@ -94,9 +100,24 @@ public:
         }
     }
 
+    std::string currentBurst() {
+        std::string out = "Process ";
+        out += pid;
+        out += "; Burst ";
+        out += std::to_string(index);
+        out += ": CPU ";
+        out += std::to_string(Q.front().first);
+        out += "ms; IO: ";
+        out += std::to_string(Q.front().second);
+        out += "ms;";
+        return out;
+    }
+
 
     friend std::ostream& operator<<(std::ostream& os, const Process& p);
     friend bool operator< ( const Process& a, const Process& b);
+    friend bool operator> ( const Process& a, const Process& b);
+
 
 private:
     char pid;           // Process name
@@ -115,14 +136,19 @@ private:
 
 std::ostream& operator<<(std::ostream& os, const Process& p)
 {
-    // os << p.pid << ': ' << p.arrival_time;
     os << p.out;
+    // os << p.out;
     return os;
 }
 
 bool operator< ( const Process& a, const Process& b) 
 {
     return a.arrival_time > b.arrival_time;
+}
+
+bool operator> ( const Process& a, const Process& b) 
+{
+    return a.arrival_time < b.arrival_time;
 }
 
 
