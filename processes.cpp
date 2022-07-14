@@ -81,24 +81,6 @@ public:
 
     }
 
-    // while ( !finished( P ) ) {
-    // while ( x++ < 5 ) {
-    //   // start the burst of the first process
-    //   if ( !(Q.empty() )) { Q.pop(); }
-    //   p.next();
-    //   time += contextSw/2;
-    //   std::cout << prefix( time, p.getID() ) << "started using the CPU for " << p.current().first << "ms burst ";
-    //   printQ( p.current().first );
-    //   time += p.current().first;
-    //   p.cpuDone( time );
-    //   printQ( 0 );
-    //   std::cout << prefix( time, p.getID() ) << "switching out of CPU; will block on I/O until time " << p.current().second + time + contextSw/2 << "ms ";
-    //   printQ( p.current().second );
-    //   time += contextSw/2;
-    //   if ( !(Q.empty() )) {
-    //     p = Q.front();
-    //   }
-    // }
   }
   friend int mian();
 
@@ -176,6 +158,7 @@ private:
     Process io = IOworkingQueue.top();
     while ( io.current().second <= nextTime ) {
       std::cout << prefix( io.current().second + time, io.getID() ) << " completed I/O; added to ready queue ";
+      io.ioDone( io.current().second + time );
       Q.push( io );
       io.ioDone( time + io.current().second );
       IOworkingQueue.pop();
