@@ -28,7 +28,7 @@ public:
         old_tau = (float)1/lambda;
         arrival_time = floor(next_exp(seed, lambda, upper_bound));
         cpu_bursts_num = ceil(next_unif(seed));
-        std::cout << "Process " << pid << ": arrival time " << arrival_time << "ms; tau " << "TBD" << "ms; " << cpu_bursts_num << " CPU bursts:" << std::endl;
+        std::cout << "Process " << pid << ": arrival time " << arrival_time << "ms; tau " << std::to_string((int)old_tau) << "ms; " << cpu_bursts_num << " CPU bursts:" << std::endl;
         for (int c = 0; c < cpu_bursts_num; c++)
         {   
             int cpuBurst = ceil(next_exp(seed, lambda, upper_bound));
