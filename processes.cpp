@@ -52,8 +52,9 @@ public:
 // pretty_print(IOworkingQueue);
 // printQ( 3500 );
     bool res;
-    pretty_print( P );
-    while ( !finished( P ) ) {
+    int finishedProcesses = 0;
+    // pretty_print( P );
+    while ( finishedProcesses != P.size() ) {
     // while ( x++ < 3 ) {
       // std::cout << "x:" << x << std::endl;
       if ( !(Q.empty()) ) { Q.pop(); }
@@ -65,21 +66,26 @@ public:
       printQ();
       checkArrivals( p.current().first );
       checkWorkingQueues( p.current().first );
-      // std::cout << prefix ( time, p.getID() );
-      time += contextSw/2;
-      checkWorkingQueues( p.current().second );
-      p.next();
-      // time += p.current().first;
+
+      if ( !Q.empty() ) {
+        // if there is stuff in the queue then look at it instead
+        p = Q.front();
+        Q.pop();
+        time += contextSw/2;
+        continue;
+      }
+
       if ( p.getRemainingBursts() == 0 ) {
         std::cout << prefix( time, p.getID() ) << "terminated ";
         printQ();
-        // pretty_print()
-        std::cerr << p << std::endl;
-        // p.done();
+        // std::cerr << p << std::endl;
+        finishedProcesses++;
       }
+      time += contextSw/2;
+      checkWorkingQueues( p.current().second );
+      p.next();
       if ( !(Q.empty()) ) {
         p = Q.front();
-        // time += contextSw/2;
       }
 
     }
@@ -93,11 +99,9 @@ private:
 
   bool finished( std::vector<Process> P ) {
     for ( Process p : P ) {
-      // if ( !p.empty() ) { return false; }
       if ( p.getRemainingBursts() != 0 ) { 
         return false;
       }
-      // if ( !p.done() ) { return false; }
     }
     return true;
   }
@@ -186,13 +190,18 @@ private:
     Process cpu = CPUworkingQueue.top();
     while ( cpu.current().first <= nextTime ) { 
       // std::cout << "here cpu\n";
-      cpu.cpuDone( time + cpu.current().first );
-      printQ();
       if ( cpu.getRemainingBursts() == 0 ) {
+        time += cpu.current().first;
         return -1; // true
       } 
+      // "completed a cpu burst ... "
+      cpu.cpuDone( time + cpu.current().first );
+      printQ();
+
       std::cout << prefix( cpu.current().first + time, cpu.getID() ) << "switching out of CPU; will block on I/O until time " << cpu.current().first + time + cpu.current().second + contextSw/2 << "ms ";
       printQ();
+      // look at the ready queue and if theres stuff there then start them
+
       time += cpu.current().first;
       IOworkingQueue.push( cpu );
       CPUworkingQueue.pop();
@@ -211,9 +220,9 @@ private:
       return;
     }
     // new arrivals
-    //TODO:  check to see if i can remove the nextTime == -1
+
     Process p = processes.front();
-    if ( time + nextTime > p.getArrivalTime() || nextTime == -1 ) {
+    if ( time + nextTime > p.getArrivalTime() ) {
       addNewProcess();
     }
   }
@@ -276,7 +285,7 @@ int main() {
   srand48(seed);
   // Process('A', seed, lambda, upperBound);
   std::vector<Process> v;
-  for ( int i = 0; i < 1; i++ ) {
+  for ( int i = 0; i < 2; i++ ) {
     v.push_back( Process( 'A' + i, seed, lambda, upperBound ) );
   }
   std::sort( v.begin(), v.end(), std::greater<>() );
