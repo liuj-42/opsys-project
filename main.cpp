@@ -58,7 +58,17 @@ int main(int argc, char **argv)
   std::cout<<"TIME"<<time<<"\n";
   return 0;
 }
-std::string prefix(int time, char pid,float tau)
+
+std::string prefix( int time, char pid ) {
+  std::string out = "time ";
+  out += std::to_string(time);
+  out += "ms: Process ";
+  out += pid;
+  out += " ";
+  return out;
+}
+
+std::string prefix(int time, char pid,int tau)
 {
   std::string out = "time ";
   out += std::to_string(time);
@@ -115,9 +125,11 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   int cpu_burst_msg_counter=0;
   std::vector<Process> waiting_state;
   std::vector<char> deletes;
+  std::vector<Process> leaving_Process;
   int value=0;
-  while (1)
-  {   
+  int incoming_contextSwitch_counter = contextSwitch/2;
+  int exiting_contextSwitch_counter = contextSwitch/2;
+  while (1){   
     /*
       std::cout << "TIME: " << time << " ms\n";
       std::cout << "   Processes: " << processes.size() << "\n";
@@ -129,73 +141,77 @@ int sjf(std::vector<Process> processes, int contextSwitch)
       std::cout << "   ready_state: " << ready_state.size() << "\n";
     */
     // ADD new Arrivals to Ready Queue
-    if (!processes.empty())
-    {
-      for (unsigned int i = 0; i < processes.size(); i++)
-      {
-        if (time == processes[i].getArrivalTime())
-        { // Initial Setup
+    if (!processes.empty()){
+      for (unsigned int i = 0; i < processes.size(); i++){
+        if (time == processes[i].getArrivalTime()){ // Initial Setup
           ready_state.push_back(processes[i]);//dont forget to sort ready state
           deletes.push_back(processes[i].getID());
           std::cout << prefix( time, processes[i].getID(),processes[i].old_tau ) << "arrived; added to ready queue \n";
         }
       }
       // Delete From Processes
-      for (unsigned int i = 0; i < deletes.size(); i++)
-      {
-        if (processes[i].getID() == deletes[0])
-        {
+      for (unsigned int i = 0; i < deletes.size(); i++){
+        if (processes[i].getID() == deletes[0]){
           processes.erase(processes.begin() + i);
           deletes.erase(deletes.begin());
           i--;
         }
       }
     }
-    //Calculate tau values for all processes in ready_state
-    //find the lowest estimate
-    
-    // CPU RUNNING STATE
-    if (!ready_state.empty())
-    {     
-      if(cpu_burst_msg_counter == 0){
-        ready_state[0].exponential_averaging();
-        std::cout << prefix( time, ready_state[0].getID(),ready_state[0].old_tau ) << "started using the CPU for " << ready_state[0].bursts[ready_state[0].index].first << "ms burst\n";
-        cpu_burst_msg_counter = ready_state[0].bursts[ready_state[0].index].first;
-      }else{
-        cpu_burst_msg_counter--;
+    if(!leaving_Process.empty()){//Exiting Process switch
+      exiting_contextSwitch_counter--;
+      if(exiting_contextSwitch_counter==0){
+        waiting_state.push_back(leaving_Process[0]);
+        leaving_Process.erase(leaving_Process.begin());
+        exiting_contextSwitch_counter = contextSwitch/2;
       }
-      if (ready_state[0].bursts[ready_state[0].index].first == 0)
-      {
-        std::cout << prefix( time, ready_state[0].getID(),ready_state[0].old_tau ) << "completed a CPU burst; " << ready_state[0].getRemainingBursts()-1 << (ready_state[0].getRemainingBursts()-1 == 1 ? " burst to go " : " bursts to go\n");
-        if (ready_state[0].getRemainingBursts() != 1)
-        {
-          waiting_state.push_back(ready_state[0]); 
-          std::cout << prefix( time, ready_state[0].getID(),ready_state[0].old_tau ) << "switching out of CPU; will block on I/O until time " << time + ready_state[0].bursts[ready_state[0].index].second + contextSwitch/2<< "ms\n";
-        }
-        if(ready_state.size()>1){
-          int index_lowest_est=0;
-          int lowest_estimate = INT_MAX;
-          for(unsigned int i = 0; i < ready_state.size(); i++){
-            if(ready_state[i].old_tau < lowest_estimate){lowest_estimate = ready_state[i].old_tau; index_lowest_est = i;}
-          }
-          std::iter_swap(ready_state.begin()+index_lowest_est,ready_state.begin());
-          ready_state.erase(ready_state.begin()+index_lowest_est); 
+    }
+    else if (!ready_state.empty()){     // CPU RUNNING STATE
+      if(incoming_contextSwitch_counter ==0){//Incoming Process Switch
+        if(cpu_burst_msg_counter == 0){
+          ready_state[0].exponential_averaging();
+          std::cout << prefix( time, ready_state[0].getID(),(int)ceil(ready_state[0].last_est_burst)) << "started using the CPU for " << ready_state[0].bursts[ready_state[0].index].first << "ms burst\n";
+          cpu_burst_msg_counter = ready_state[0].bursts[ready_state[0].index].first;
         }else{
-          ready_state.erase(ready_state.begin()); 
-        }        
-        
+          cpu_burst_msg_counter--;
+        }
+        if (ready_state[0].bursts[ready_state[0].index].first == 0){
+          if(ready_state[0].getRemainingBursts() >1){
+            std::cout << prefix( time, ready_state[0].getID(),(int)ceil(ready_state[0].last_est_burst)) << "completed a CPU burst; " << ready_state[0].getRemainingBursts()-1 << (ready_state[0].getRemainingBursts()-1 == 1 ? " burst to go\n" : " bursts to go\n");
+          }else{
+            std::cout << prefix( time, ready_state[0].getID()) << "terminated\n";
+          }
+          if (ready_state[0].getRemainingBursts() != 1){
+            leaving_Process.push_back(ready_state[0]); 
+            std::cout <<"time "<<std::to_string(time)<<"ms: Recalculated tau for process "<<ready_state[0].getID()<<": old tau "<<ready_state[0].old_tau<<"ms; new tau "<<ready_state[0].future_exponential_averaging()<<"ms\n";
+            std::cout << prefix( time, ready_state[0].getID()) << "switching out of CPU; will block on I/O until time " << time + ready_state[0].bursts[ready_state[0].index].second + contextSwitch/2<< "ms\n";
+          }
+          if(ready_state.size()>1){
+            int index_lowest_est=0;
+            int lowest_estimate = INT_MAX;
+            for(unsigned int i = 0; i < ready_state.size(); i++){
+              if(ready_state[i].last_est_burst < lowest_estimate){lowest_estimate = ready_state[i].last_est_burst; index_lowest_est = i;}
+            }
+            std::iter_swap(ready_state.begin()+index_lowest_est,ready_state.begin());
+            ready_state.erase(ready_state.begin()+index_lowest_est); 
+          }else{
+            ready_state.erase(ready_state.begin()); 
+          }  
+          incoming_contextSwitch_counter = contextSwitch/2;        
+        }else{
+          ready_state[0].bursts[ready_state[0].index].first--;
+        }     
       }else{
-        ready_state[0].bursts[ready_state[0].index].first--;
-      }     
+        incoming_contextSwitch_counter--;
+      }
     }
 
     // Handle Waiting Queue
-    for (unsigned int i = 0; i < waiting_state.size(); i++)
-    {
-      if (waiting_state[i].bursts[waiting_state[i].index].second == 0)
-      {
+    for (unsigned int i = 0; i < waiting_state.size(); i++){
+      if (waiting_state[i].bursts[waiting_state[i].index].second == 0){
         waiting_state[i].index++;
         ready_state.push_back(waiting_state[i]);
+        std::cout << prefix( time, waiting_state[i].getID(),waiting_state[i].waiting_exponential_averaging()) << "completed I/O; added to ready queue\n";
         waiting_state.erase(waiting_state.begin() + i);
       }else{
         waiting_state[i].bursts[waiting_state[i].index].second--;
@@ -203,8 +219,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
     }
 
     time++;
-    if (processes.empty() && waiting_state.empty() && ready_state.empty())
-    {
+    if (processes.empty() && waiting_state.empty() && ready_state.empty() && leaving_Process.empty()){
       ALGO_print("Algorithm SJF", avg_cpu, avg_wait, avg_turn, 0, 0, cpu_util);
       return time;
     }

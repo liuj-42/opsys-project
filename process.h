@@ -44,7 +44,7 @@ public:
             
             std::pair<int, int> burst(cpuBurst, ioBurst);
             bursts.push_back(burst);
-            Q.push(burst);
+            Q.push_back(burst);
         }
         std::cout << std::endl;
     }
@@ -65,13 +65,23 @@ public:
     int exponential_averaging(){
       if(index ==0){
         last_est_burst = old_tau;
+      //  std::cout<<"EXP Index 0 old tau:"<<old_tau<<"\n";
         return old_tau;
       }
-      int last_actual_cpu_burst = bursts[index-1].first;
+      int last_actual_cpu_burst = Q[index-1].first;
       old_tau = last_est_burst;
       last_est_burst = ceil(alpha * last_actual_cpu_burst + ((1 - alpha) * last_est_burst));
       return last_est_burst;
     }
+    int future_exponential_averaging(){
+      int last_actual_cpu_burst = Q[index].first;
+      return ceil(alpha * last_actual_cpu_burst + ((1 - alpha) * last_est_burst));
+    }
+    int waiting_exponential_averaging(){
+      int last_actual_cpu_burst = Q[index-1].first;
+      return ceil(alpha * last_actual_cpu_burst + ((1 - alpha) * last_est_burst));
+    }
+    
     // getters
     char getID() { return pid; }
     int getArrivalTime() { return arrival_time; }
@@ -79,14 +89,14 @@ public:
     int getRemainingBursts() { return cpu_bursts_num - index; }
     const std::vector<std::pair<int, int>> getBursts() { return bursts; }
     bool empty() { return Q.empty(); }
-
+    /*
     std::pair<int, int> next() { 
         std::pair<int, int> burst = Q.front();
     // std::cout << "process " << burst.first << " " << burst.second << std::endl;
         index++;
         Q.pop();
         return burst;
-    }
+    }*/
 
     // debug
     void printAllBursts() {
@@ -108,7 +118,7 @@ private:
     // burst.second is IO burst time
     // std::list<std::pair<int, int>> bursts;
     //std::list<std::pair<int, int>> bursts;
-    std::queue<std::pair<int, int>> Q;
+    std::vector<std::pair<int, int>> Q;
     
     float alpha;
 };
