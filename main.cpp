@@ -104,14 +104,15 @@ void printQ(std::queue<Process> Q)
 void print_queue_inside(std::vector<Process> q)
 { // NB: pass by value so the print uses a copy
   std::cout<< "[Q: ";
-  if(q.size()==1){
+  if(q.size()<=1){
     std::cout<<"empty";
+  }else{
+    for(unsigned int i=1; i< q.size(); i++){
+      std::cout << q[i].getID();
+      if(i<q.size()-1){std::cout<<' ';}
+    }
   }
-  for(unsigned int i=1; i< q.size(); i++)
-  {
-    std::cout << q[i].getID();
-    if(i<q.size()-1){std::cout<<' ';}
-  }
+  
   std::cout << "]\n";
 }
 void print_queue_outside(std::vector<Process> q)
@@ -149,7 +150,8 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   int exiting_contextSwitch_counter = contextSwitch/2;
   while (1){   
     /*
-    if(time >583 && time < 588){
+    if(time >2829 && time < 2901){
+      
       std::cout << "TIME: " << time << " ms\n";
       std::cout << "   Processes: " << processes.size() << "\n";
       std::cout << "   Waiting_Q: " << waiting_state.size() << "\n";
@@ -172,7 +174,12 @@ int sjf(std::vector<Process> processes, int contextSwitch)
           ready_state.push_back(processes[i]);//dont forget to sort ready state
           deletes.push_back(processes[i].getID());
           std::cout << prefix( time, processes[i].getID(),processes[i].old_tau ) << "arrived; added to ready queue ";
-          print_queue_inside(ready_state);
+          if(cpu_burst_msg_counter == 0){
+            print_queue_outside(ready_state);
+          }else{
+            print_queue_inside(ready_state);
+          }
+          
         }
       }
       // Delete From Processes
@@ -182,6 +189,19 @@ int sjf(std::vector<Process> processes, int contextSwitch)
           deletes.erase(deletes.begin());
           i--;
         }
+      }
+    }
+    // Handle Waiting Queue
+    for (unsigned int i = 0; i < waiting_state.size(); i++){
+      
+      if (waiting_state[i].bursts[waiting_state[i].index].second == 1){
+        waiting_state[i].index++;
+        ready_state.push_back(waiting_state[i]);
+        std::cout << prefix( time, waiting_state[i].getID(),waiting_state[i].waiting_exponential_averaging()) << "completed I/O; added to ready queue ";
+        print_queue_outside(ready_state);
+        waiting_state.erase(waiting_state.begin() + i);
+      }else{
+        waiting_state[i].bursts[waiting_state[i].index].second--;  
       }
     }
     if(!leaving_Process.empty()){//Exiting Process switch
@@ -230,7 +250,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
           }else{
             ready_state.erase(ready_state.begin()); 
           }  
-          incoming_contextSwitch_counter = contextSwitch/2 -1;        
+          incoming_contextSwitch_counter = contextSwitch/2;        
         }else{
           ready_state[0].bursts[ready_state[0].index].first--;
         }     
@@ -239,18 +259,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
       }
     }
 
-    // Handle Waiting Queue
-    for (unsigned int i = 0; i < waiting_state.size(); i++){
-      if (waiting_state[i].bursts[waiting_state[i].index].second == 0){
-        waiting_state[i].index++;
-        ready_state.push_back(waiting_state[i]);
-        std::cout << prefix( time, waiting_state[i].getID(),waiting_state[i].waiting_exponential_averaging()) << "completed I/O; added to ready queue ";
-        print_queue_outside(ready_state);
-        waiting_state.erase(waiting_state.begin() + i);
-      }else{
-        waiting_state[i].bursts[waiting_state[i].index].second--;
-      }      
-    }
+    
 
     if (processes.empty() && waiting_state.empty() && ready_state.empty() && leaving_Process.empty()){
       std::cout<<"time "<<std::to_string(time)<<"ms: Simulator ended for SJF [Q: empty]\n";
