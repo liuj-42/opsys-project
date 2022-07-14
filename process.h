@@ -46,7 +46,6 @@ public:
             bursts.push_back(burst);
             Q.push_back(burst);
         }
-        std::cout << std::endl;
     }
 
     std::string toStr() {

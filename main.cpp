@@ -55,6 +55,7 @@ int main(int argc, char **argv)
   int time = 0;
   // FCFS
   // time += fcfs( processes, contextSwitch );
+  std::cout<<"\n";
   time += sjf(processes, contextSwitch);
   return 0;
 }
@@ -108,7 +109,8 @@ void print_queue_inside(std::vector<Process> q)
   }
   for(unsigned int i=1; i< q.size(); i++)
   {
-    std::cout << q[i].getID() << ' ';
+    std::cout << q[i].getID();
+    if(i<q.size()-1){std::cout<<' ';}
   }
   std::cout << "]\n";
 }
@@ -170,7 +172,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
           ready_state.push_back(processes[i]);//dont forget to sort ready state
           deletes.push_back(processes[i].getID());
           std::cout << prefix( time, processes[i].getID(),processes[i].old_tau ) << "arrived; added to ready queue ";
-          print_queue_outside(ready_state);
+          print_queue_inside(ready_state);
         }
       }
       // Delete From Processes
