@@ -69,6 +69,7 @@ public:
     bool isCpuDone() { return cpuFinished; }
     bool isioDone() { return ioFinished; }
     bool empty() { return Q.empty(); }
+    bool done() { return finished; }
 
     // modifiers
     void cpuDone( int time ) { 
@@ -76,6 +77,7 @@ public:
         cpuFinished = true; 
     }
     void ioDone( int time ) { ioFinished = true; }
+
 
     
 
@@ -124,6 +126,7 @@ public:
 
 
 private:
+    bool finished = false;
     char pid;           // Process name
     int index = 1;      
     int arrival_time;   // Arrival time

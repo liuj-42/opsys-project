@@ -51,9 +51,11 @@ public:
 // pretty_print(CPUworkingQueue);
 // pretty_print(IOworkingQueue);
 // printQ( 3500 );
-    // while ( !finished( P ) ) {
-    while ( x++ < 3 ) {
-      std::cout << "x:" << x << std::endl;
+    bool res;
+    pretty_print( P );
+    while ( !finished( P ) ) {
+    // while ( x++ < 3 ) {
+      // std::cout << "x:" << x << std::endl;
       if ( !(Q.empty()) ) { Q.pop(); }
       p.next();
       time += contextSw/2;
@@ -66,23 +68,36 @@ public:
       // std::cout << prefix ( time, p.getID() );
       time += contextSw/2;
       checkWorkingQueues( p.current().second );
-
+      p.next();
       // time += p.current().first;
+      if ( p.getRemainingBursts() == 0 ) {
+        std::cout << prefix( time, p.getID() ) << "terminated ";
+        printQ();
+        // pretty_print()
+        std::cerr << p << std::endl;
+        // p.done();
+      }
       if ( !(Q.empty()) ) {
         p = Q.front();
-        time += contextSw/2;
+        // time += contextSw/2;
       }
 
     }
+    std::cout << "time " << time << "ms: Simulator ended for FCFS ";
+    printQ();
 
   }
-  friend int mian();
+  friend int main();
 
 private:
 
   bool finished( std::vector<Process> P ) {
     for ( Process p : P ) {
-      if ( !p.empty() ) { return false; }
+      // if ( !p.empty() ) { return false; }
+      if ( p.getRemainingBursts() != 0 ) { 
+        return false;
+      }
+      // if ( !p.done() ) { return false; }
     }
     return true;
   }
@@ -111,22 +126,23 @@ private:
   }
 
   void checkWorkingQueues( int nextTime ) {
+    bool done = false;
     if ( !(IOworkingQueue.empty()) || !(CPUworkingQueue.empty()) ) {
       bool ioDone = false;
-      bool cpuDone = false;
+      int cpuDone = 0;
       
       while ( (!ioDone || !cpuDone ) ) {
-        // std::cout << "here\n";
         Process cpu, io;
-        if ( CPUworkingQueue.empty() ) { // io only
-        // std::cerr << "only stuff in io working queue\n";
-          ioDone = ioQueue( nextTime );
-        } else if ( IOworkingQueue.empty() ) { // cpu only
-        // std::cerr << "only stuff in cpu working queue\n";
-
+        if ( CPUworkingQueue.empty() || IOworkingQueue.empty() ) { // io only
           cpuDone = cpuQueue( nextTime );
-        } else {  // both
-        // std::cerr << "stuff in both queues\n";
+          if ( cpuDone == -1 ) {
+            done = true;
+            break;
+          }
+          ioDone = ioQueue( nextTime );
+
+        }
+        else {  // both
           bool CPU, IO;
           while ( !cpuDone && !ioDone ) {
             cpu = CPUworkingQueue.top();
@@ -139,10 +155,13 @@ private:
           }
         }
       }
+
     } 
+
   }
 
   bool ioQueue( int nextTime ) {
+    if ( IOworkingQueue.empty()) { return true ;}
     Process io = IOworkingQueue.top();
     while ( io.current().second <= nextTime ) {
       // std::cout << "here io\n";
@@ -150,37 +169,43 @@ private:
       io.ioDone( io.current().second + time );
       Q.push( io );
       io.ioDone( time + io.current().second );
-
+      IOworkingQueue.pop();
       printQ();
       
       time += io.current().second;
       if ( !IOworkingQueue.empty() ) {
-        IOworkingQueue.pop();
+
         io = IOworkingQueue.top();
       } else { break; }
     }
     bool ioDone = ( IOworkingQueue.empty() || io.current().second > nextTime );
     return ioDone;
   }
-  bool cpuQueue( int nextTime ) {
+  int cpuQueue( int nextTime ) {
+    if ( CPUworkingQueue.empty()) { return true ;}
     Process cpu = CPUworkingQueue.top();
     while ( cpu.current().first <= nextTime ) { 
       // std::cout << "here cpu\n";
       cpu.cpuDone( time + cpu.current().first );
       printQ();
+      if ( cpu.getRemainingBursts() == 0 ) {
+        return -1; // true
+      } 
       std::cout << prefix( cpu.current().first + time, cpu.getID() ) << "switching out of CPU; will block on I/O until time " << cpu.current().first + time + cpu.current().second + contextSw/2 << "ms ";
       printQ();
       time += cpu.current().first;
       IOworkingQueue.push( cpu );
+      CPUworkingQueue.pop();
 
       if ( !CPUworkingQueue.empty() ) {
-        CPUworkingQueue.pop();
+
         cpu = CPUworkingQueue.top();
       } else { break ; }
     } 
-    bool cpuDone = ( CPUworkingQueue.empty() || cpu.current().first > nextTime );
+    int cpuDone = (int) ( CPUworkingQueue.empty() || cpu.current().first > nextTime );
     return cpuDone;
   }
+
   void checkArrivals( int nextTime ) {
     if ( processes.empty() ) {
       return;
