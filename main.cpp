@@ -161,7 +161,9 @@ int sjf(std::vector<Process> processes, int contextSwitch)
     if(!leaving_Process.empty()){//Exiting Process switch
       exiting_contextSwitch_counter--;
       if(exiting_contextSwitch_counter==0){
-        waiting_state.push_back(leaving_Process[0]);
+        if(ready_state[0].getRemainingBursts() !=1){
+          waiting_state.push_back(leaving_Process[0]);
+        }        
         leaving_Process.erase(leaving_Process.begin());
         exiting_contextSwitch_counter = contextSwitch/2;
       }
@@ -181,8 +183,8 @@ int sjf(std::vector<Process> processes, int contextSwitch)
           }else{
             std::cout << prefix( time, ready_state[0].getID()) << "terminated\n";
           }
-          if (ready_state[0].getRemainingBursts() != 1){
-            leaving_Process.push_back(ready_state[0]); 
+          leaving_Process.push_back(ready_state[0]); 
+          if (ready_state[0].getRemainingBursts() != 1){            
             std::cout <<"time "<<std::to_string(time)<<"ms: Recalculated tau for process "<<ready_state[0].getID()<<": old tau "<<ready_state[0].old_tau<<"ms; new tau "<<ready_state[0].future_exponential_averaging()<<"ms\n";
             std::cout << prefix( time, ready_state[0].getID()) << "switching out of CPU; will block on I/O until time " << time + ready_state[0].bursts[ready_state[0].index].second + contextSwitch/2<< "ms\n";
           }
@@ -220,6 +222,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
 
     time++;
     if (processes.empty() && waiting_state.empty() && ready_state.empty() && leaving_Process.empty()){
+      std::cout<<"time: "<<std::to_string(time)<<"ms: Simulator ended for SRT [Q: empty]\n";
       ALGO_print("Algorithm SJF", avg_cpu, avg_wait, avg_turn, 0, 0, cpu_util);
       return time;
     }
