@@ -73,12 +73,18 @@ Process B: arrival time 91ms; tau TBDms; 58 CPU bursts:
 --> CPU burst 11ms --> I/O burst 420ms
 --> CPU burst 158ms
 
+time 0ms: Simulator started for FCFS [Q: empty]
 time 33ms: Process A arrived; added to ready queue [Q: A]
-time 91ms: Process B arrived; added to ready queue [Q: A B]
-
-Process A; Burst 1: CPU 207ms; IO: 340ms;
-Process B; Burst 1: CPU 70ms; IO: 2580ms;
-
-[Q: A B]
-time 340ms: Process A  completed I/O; added to ready queue [Q: A B A]
-next process 
+x:1
+time 35ms: Process A started using the CPU for 207ms burst [Q: empty]
+time 91ms: Process B arrived; added to ready queue [Q: B]
+time 242ms: Process A completed a CPU burst; 13 bursts to go [Q: B]
+time 242ms: Process A switching out of CPU; will block on I/O until time 584ms [Q: B]
+x:2
+time 246ms: Process B started using the CPU for 70ms burst [Q: empty]
+time 316ms: Process B completed a CPU burst; 57 bursts to go [Q: empty]
+time 316ms: Process B switching out of CPU; will block on I/O until time 2898ms [Q: empty]
+x:3
+time 318ms: Process B started using the CPU for 70ms burst [Q: empty]
+time 388ms: Process B completed a CPU burst; 57 bursts to go [Q: empty]
+time 388ms: Process B switching out of CPU; will block on I/O until time 2970ms [Q: empty]
