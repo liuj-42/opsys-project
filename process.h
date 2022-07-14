@@ -82,7 +82,7 @@ public:
     std::pair<int, int> next() { 
         std::pair<int, int> burst = Q.front();
         if ( cpuFinished && ioFinished ) {
-            // std::cout << "next burst\n";
+            std::cerr << "next burst\n";
             index++;
             Q.pop();
             cpuFinished = false;

@@ -26,28 +26,15 @@ class CompareCPU {
   }
 };
 
-
-
-// class WorkingQueue {
-// public:
-// private:
-//   std::priority_queue<Process, std::vector<Process>, Comp> Q;
-// }
-
-
 class Processes {
 public:
   Processes( std::vector<Process> processes, int cs ): processes(processes), P(processes), contextSw(cs) { }
-
-  // Process nextProcess() { // returns the next process in the queue
-    
-  // }
 
   void start() {
     std::cout << std::endl;
     int x = 0;
     std::cout << "time 0ms: Simulator started for FCFS ";
-    printQ(-2);
+    printQ();
     Process p = addNewProcess();
     time += p.getArrivalTime();
 
@@ -70,10 +57,17 @@ public:
       if ( !(Q.empty()) ) { Q.pop(); }
       p.next();
       time += contextSw/2;
+      // this should only print once both working queues empty themselves with stuff that wouldve run
       std::cout << prefix( time, p.getID() ) << "started using the CPU for " << p.current().first << "ms burst ";
       CPUworkingQueue.push( p );
-      printQ( p.current().first );
-      time += p.current().first;
+      printQ();
+      checkArrivals( p.current().first );
+      checkWorkingQueues( p.current().first );
+      // std::cout << prefix ( time, p.getID() );
+      time += contextSw/2;
+      checkWorkingQueues( p.current().second );
+
+      // time += p.current().first;
       if ( !(Q.empty()) ) {
         p = Q.front();
         time += contextSw/2;
@@ -102,8 +96,7 @@ private:
     return out;
   }
 
-  void printQ( int nextTime ) {
-    
+  void printQ() {
     std::queue<Process> q = Q;
     std::cout << "[Q:";
     if ( q.empty() ) {
@@ -115,30 +108,25 @@ private:
       }
     }
     std::cout << "]\n";
-    checkArrivals( nextTime );
-#if 0
-    // std::cout << "time: " << time << std::endl;
-    // std::cout << "processes: " << std::endl;
-    // pretty_print(processes);
-#endif 
-    if ( nextTime == -2 ) { return; }
-    // look at the cpu/io working queue
-    checkWorkingQueues( nextTime );
   }
 
   void checkWorkingQueues( int nextTime ) {
     if ( !(IOworkingQueue.empty()) || !(CPUworkingQueue.empty()) ) {
-      bool noCPU, noIO; 
       bool ioDone = false;
       bool cpuDone = false;
       
       while ( (!ioDone || !cpuDone ) ) {
+        // std::cout << "here\n";
         Process cpu, io;
         if ( CPUworkingQueue.empty() ) { // io only
+        // std::cerr << "only stuff in io working queue\n";
           ioDone = ioQueue( nextTime );
         } else if ( IOworkingQueue.empty() ) { // cpu only
+        // std::cerr << "only stuff in cpu working queue\n";
+
           cpuDone = cpuQueue( nextTime );
         } else {  // both
+        // std::cerr << "stuff in both queues\n";
           bool CPU, IO;
           while ( !cpuDone && !ioDone ) {
             cpu = CPUworkingQueue.top();
@@ -157,13 +145,17 @@ private:
   bool ioQueue( int nextTime ) {
     Process io = IOworkingQueue.top();
     while ( io.current().second <= nextTime ) {
-      std::cout << prefix( io.current().second + time, io.getID() ) << " completed I/O; added to ready queue ";
+      // std::cout << "here io\n";
+      std::cout << prefix( io.current().second + time, io.getID() ) << "completed I/O; added to ready queue ";
       io.ioDone( io.current().second + time );
       Q.push( io );
       io.ioDone( time + io.current().second );
-      IOworkingQueue.pop();
-      printQ( -2 );
+
+      printQ();
+      
+      time += io.current().second;
       if ( !IOworkingQueue.empty() ) {
+        IOworkingQueue.pop();
         io = IOworkingQueue.top();
       } else { break; }
     }
@@ -173,13 +165,16 @@ private:
   bool cpuQueue( int nextTime ) {
     Process cpu = CPUworkingQueue.top();
     while ( cpu.current().first <= nextTime ) { 
+      // std::cout << "here cpu\n";
       cpu.cpuDone( time + cpu.current().first );
-      printQ( -2 );
+      printQ();
       std::cout << prefix( cpu.current().first + time, cpu.getID() ) << "switching out of CPU; will block on I/O until time " << cpu.current().first + time + cpu.current().second + contextSw/2 << "ms ";
-      printQ( -2 );
+      printQ();
+      time += cpu.current().first;
       IOworkingQueue.push( cpu );
-      CPUworkingQueue.pop();
+
       if ( !CPUworkingQueue.empty() ) {
+        CPUworkingQueue.pop();
         cpu = CPUworkingQueue.top();
       } else { break ; }
     } 
@@ -204,7 +199,7 @@ private:
     processes.erase( processes.begin() );
 
     std::cout << prefix( p.getArrivalTime(), p.getID() ) << "arrived; added to ready queue ";
-    printQ(-2);
+    printQ();
     return p;
   }
   
@@ -256,7 +251,7 @@ int main() {
   srand48(seed);
   // Process('A', seed, lambda, upperBound);
   std::vector<Process> v;
-  for ( int i = 0; i < 2; i++ ) {
+  for ( int i = 0; i < 1; i++ ) {
     v.push_back( Process( 'A' + i, seed, lambda, upperBound ) );
   }
   std::sort( v.begin(), v.end(), std::greater<>() );
