@@ -17,6 +17,9 @@ class Process
 {
 
 public:
+
+    Process() {}
+
     Process(char id, int seed, double lambda, int upper_bound)
     {
         pid = id;
