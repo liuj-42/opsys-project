@@ -143,36 +143,40 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   double cpu_util = 0;
   int cpu_burst_msg_counter=0;
   std::vector<Process> waiting_state;
-  std::vector<char> deletes;
+  std::vector<int> deletes;
   std::vector<Process> leaving_Process;
   int value=0;
   int incoming_contextSwitch_counter = contextSwitch/2;
   int exiting_contextSwitch_counter = contextSwitch/2;
   while (1){   
-    /*
-    if(time >245 && time < 249){
+    
+    if(time <35){
       
       std::cout << "TIME: " << time << " ms\n";
       std::cout << "   Processes: " << processes.size() << "\n";
       std::cout << "   Waiting_Q: " << waiting_state.size() << "\n";
       for (unsigned int i = 0; i < waiting_state.size(); i++)
       {
-        std::cout << "\t   ID:" << waiting_state[i].getID() << " is on " << waiting_state[i].index << "with " << waiting_state[i].bursts[waiting_state[i].index].second << "\n";
+        std::cout << "\t   ID:" << waiting_state[i].getID() << " is on " << waiting_state[i].index << "with " << waiting_state[i].bursts[waiting_state[i].index].second << "ms left\n";
       }
-      std::cout << "   ready_state: " << ready_state.size() << "\n";
+      std::cout << "   ready_state size : " << ready_state.size() << "\n";
+      for (unsigned int i = 0; i < ready_state.size(); i++)
+      {
+        std::cout << "\t   ID:" << ready_state[i].getID() << " is on " << ready_state[i].index << "with " << ready_state[i].bursts[ready_state[i].index].first << "ms left\n";
+      }
       std::cout << "   incoming_contextSwitch_counter: " << incoming_contextSwitch_counter << "\n";
       std::cout << "   exiting_contextSwitch_counter: " << exiting_contextSwitch_counter << "\n";
       if(leaving_Process.size()>0){
         std::cout << "   leaving_Process: " << leaving_Process[0].getID() << "\n";
       }      
-    }*/
+    }
     
     // ADD new Arrivals to Ready Queue
     if (!processes.empty()){
-      for (unsigned int i = 0; i < processes.size(); i++){
+      for (int i = 0; i < (int)processes.size(); i++){
         if (time == processes[i].getArrivalTime()){ // Initial Setup
           ready_state.push_back(processes[i]);//dont forget to sort ready state
-          deletes.push_back(processes[i].getID());
+          deletes.push_back(i);
           std::cout << prefix( time, processes[i].getID(),processes[i].old_tau ) << "arrived; added to ready queue ";
           if(cpu_burst_msg_counter == 0){
             print_queue_outside(ready_state);
@@ -183,14 +187,14 @@ int sjf(std::vector<Process> processes, int contextSwitch)
         }
       }
       // Delete From Processes
-      for (unsigned int i = 0; i < deletes.size(); i++){
-        if (processes[i].getID() == deletes[0]){
-          processes.erase(processes.begin() + i);
-          deletes.erase(deletes.begin());
-          i--;
+      if(!deletes.empty()){
+        for (unsigned int i = deletes.size(); i>0; i--){
+          processes.erase(processes.begin() + deletes[i-1]);
         }
       }
+      
     }
+    
     // Handle Waiting Queue
     for (unsigned int i = 0; i < waiting_state.size(); i++){
       waiting_state[i].bursts[waiting_state[i].index].second--; 
@@ -202,18 +206,19 @@ int sjf(std::vector<Process> processes, int contextSwitch)
         waiting_state.erase(waiting_state.begin() + i);
       }
     }
-
     if(!leaving_Process.empty()){//Exiting Process switch
       exiting_contextSwitch_counter--;
-      if(exiting_contextSwitch_counter==0){
+      if(exiting_contextSwitch_counter<1){
         if(ready_state[0].getRemainingBursts() !=1){
           waiting_state.push_back(leaving_Process[0]);
         }        
         leaving_Process.erase(leaving_Process.begin());
+  
         exiting_contextSwitch_counter = contextSwitch/2;
       }
     }
-    else if (!ready_state.empty()){     // CPU RUNNING STATE
+    
+    if (!ready_state.empty() && leaving_Process.empty()){     // CPU RUNNING STATE
       if(incoming_contextSwitch_counter ==0){//Incoming Process Switch
         if(cpu_burst_msg_counter == 0){
           ready_state[0].exponential_averaging();
@@ -249,7 +254,8 @@ int sjf(std::vector<Process> processes, int contextSwitch)
           }else{
             ready_state.erase(ready_state.begin()); 
           }  
-          incoming_contextSwitch_counter = contextSwitch/2;        
+            incoming_contextSwitch_counter = contextSwitch/2;
+               
         }else{
           ready_state[0].bursts[ready_state[0].index].first--;
         }     
