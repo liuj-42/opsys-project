@@ -24,6 +24,7 @@ public:
     {
         pid = id;
         arrival_time = floor(next_exp(seed, lambda, upper_bound));
+        time += arrival_time;
         cpu_bursts_num = ceil(next_unif(seed));
         std::cout << "Process " << pid << ": arrival time " << arrival_time << "ms; tau " << "TBD" << "ms; " << cpu_bursts_num << " CPU bursts:" << std::endl;
         for (int c = 0; c < cpu_bursts_num; c++)
@@ -47,6 +48,33 @@ public:
         out = currentBurst();
     }
 
+    Process(char id, int seed, double lambda, int upper_bound, int contextSw ) : contextSw(contextSw) {
+        pid = id;
+        arrival_time = floor(next_exp(seed, lambda, upper_bound));
+        time += arrival_time;
+        cpu_bursts_num = ceil(next_unif(seed));
+        std::cout << "Process " << pid << ": arrival time " << arrival_time << "ms; tau " << "TBD" << "ms; " << cpu_bursts_num << " CPU bursts:" << std::endl;
+        for (int c = 0; c < cpu_bursts_num; c++)
+        {   
+            int cpuBurst = ceil(next_exp(seed, lambda, upper_bound));
+            std::cout << "--> CPU burst " << cpuBurst << "ms";
+            int ioBurst = 0;
+            if (c != cpu_bursts_num - 1)
+            {   
+                ioBurst = ceil(next_exp(seed, lambda, upper_bound));
+                ioBurst *= 10;
+                std::cout << " --> I/O burst " << ioBurst << "ms";
+            }
+            std::cout << std::endl;
+            
+            std::pair<int, int> burst(cpuBurst, ioBurst);
+            bursts.push_back(burst);
+            Q.push(burst);
+        }
+        // out = toStr();
+        out = currentBurst();
+    }
+ 
     std::string toStr() {
         std::string out = "Process ";
         out += pid;
@@ -69,16 +97,46 @@ public:
     bool isCpuDone() { return cpuFinished; }
     bool isioDone() { return ioFinished; }
     bool empty() { return Q.empty(); }
-    bool done() { return finished; }
+
+    void setTime( int newTime ) { 
+        // std::cout << "setting time to be " << newTime << std::endl;
+        time = newTime; }
+    int getTime(int yes) { return time + contextSwitches * contextSw/2; }
+
+    int getTime( ) { return time; }
+
+    void incrementContextSwitches() { contextSwitches++; }
+
+    int done() {
+        time += cpuDoneAt;
+        std::cout << prefix() << "terminated ";
+        contextSwitches++;
+        return getTime(1);
+    }
 
     // modifiers
-    void cpuDone( int time ) { 
-        std::cout << "time " << time << "ms: Process " << pid << " completed a CPU burst; " << getRemainingBursts() << (getRemainingBursts() == 1 ? " burst to go " : " bursts to go "); 
+    void cpuDone() { 
+        std::cout << prefix( ) << "completed a CPU burst; " << getRemainingBursts() << (getRemainingBursts() == 1 ? " burst to go " : " bursts to go "); 
         cpuFinished = true; 
     }
-    void ioDone( int time ) { ioFinished = true; }
+    void ioDone() { 
+        std::cout << prefix( contextSw/2 ) << "completed I/O; added to ready queue ";
+        ioFinished = true; 
+        // contextSwitches++;
+    }
 
+    void startCpu( int start ) {
+        contextSwitches++;
+        std::cout << prefix() << "started using the CPU for " << Q.front().first << "ms burst ";
+        cpuDoneAt = Q.front().first;
+        time += cpuDoneAt;
+    }
 
+    void startIo( int start ) {
+        std::cout << prefix( ) << "switching out of CPU; will block on I/O until time " << time + Q.front().second + contextSw/2 * (1+contextSwitches) << "ms ";
+        ioDoneAt =  Q.front().second;
+        time += ioDoneAt;
+    }
     
 
     std::pair<int, int> next() { 
@@ -89,6 +147,7 @@ public:
             Q.pop();
             cpuFinished = false;
             ioFinished = ( burst.second == 0 ? false : true);
+            // contextSwitches++;
         } 
         return burst;
     }
@@ -118,6 +177,7 @@ public:
         out += "ms;";
         return out;
     }
+    
 
 
     friend std::ostream& operator<<(std::ostream& os, const Process& p);
@@ -139,12 +199,36 @@ private:
     std::string out = "";
     bool cpuFinished = false;
     bool ioFinished = false;
+    int ioDoneAt;
+    int cpuDoneAt;
+    int contextSwitches = 0;
+    int contextSw;
+    int time = 0;
+
+    std::string prefix( ) {
+        // std::cout << "time: " << time << std::endl;
+        std::string out = "time ";
+        out += std::to_string( time + contextSwitches * contextSw/2);
+        out += "ms: Process ";
+        out += pid;
+        out += " ";
+        return out;
+    }
+
+    std::string prefix( int add ) {
+        // std::cout << "time: " << time << std::endl;
+        std::string out = "time ";
+        out += std::to_string( time + contextSwitches * contextSw/2 + add);
+        out += "ms: Process ";
+        out += pid;
+        out += " ";
+        return out;
+    }
 };
 
 std::ostream& operator<<(std::ostream& os, const Process& p)
 {
     os << p.out;
-    // os << p.out;
     return os;
 }
 

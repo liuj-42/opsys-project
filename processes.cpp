@@ -26,66 +26,85 @@ class CompareCPU {
   }
 };
 
+void sanity() {
+  std::cout << "sanity check" << std::endl;
+}
+
+
+template<typename T>
+void push(T q, Process p) { // NB: pass by value so the print uses a copy
+    std::cout << "process " << p.getID() << " was added to the working queue" << std::endl;
+    q.push(p);
+}
+
 class Processes {
 public:
   Processes( std::vector<Process> processes, int cs ): processes(processes), P(processes), contextSw(cs) { }
 
   void start() {
+    bool once = true;
     std::cout << std::endl;
     int x = 0;
     std::cout << "time 0ms: Simulator started for FCFS ";
     printQ();
-    Process p = addNewProcess();
-    time += p.getArrivalTime();
-
-// Process p = addNewProcess();
-// p.next();
-// p.cpuDone(time); p.ioDone(time); p.next();
-// // std::cout << p << std::endl;
-// CPUworkingQueue.push(p);
-// IOworkingQueue.push(p);
-// p = addNewProcess();
-// p.next();
-// CPUworkingQueue.push(p);
-// IOworkingQueue.push(p);
-// pretty_print(CPUworkingQueue);
-// pretty_print(IOworkingQueue);
-// printQ( 3500 );
+    Process p = addNewProcess( 0 );
+    // time += p.getArrivalTime();
     bool res;
     int finishedProcesses = 0;
-    // pretty_print( P );
     while ( finishedProcesses != P.size() ) {
     // while ( x++ < 3 ) {
       // std::cout << "x:" << x << std::endl;
       if ( !(Q.empty()) ) { Q.pop(); }
-      p.next();
-      time += contextSw/2;
+      p.next(); 
+      // time += contextSw/2;
       // this should only print once both working queues empty themselves with stuff that wouldve run
-      std::cout << prefix( time, p.getID() ) << "started using the CPU for " << p.current().first << "ms burst ";
+      p.startCpu( time );
+      // std::cout << prefix( time, p.getID() ) << "started using the CPU for " << p.current().first << "ms burst ";
       CPUworkingQueue.push( p );
       printQ();
-      checkArrivals( p.current().first );
+
+
+      checkArrivals( p.current().first, p.getTime()  );
+
       checkWorkingQueues( p.current().first );
+      p.setTime( time );
+
 
       if ( !Q.empty() ) {
         // if there is stuff in the queue then look at it instead
+        time = p.getTime();
         p = Q.front();
         Q.pop();
-        time += contextSw/2;
+        p.setTime( time );
+        p.incrementContextSwitches();
+        if ( once ) {
+          once = false;
+          p.incrementContextSwitches();
+        }
+
+        // time += contextSw/2;
         continue;
       }
 
       if ( p.getRemainingBursts() == 0 ) {
-        std::cout << prefix( time, p.getID() ) << "terminated ";
+        time = p.done();
+        // std::cout << prefix( p.getTime(), p.getID() ) << "terminated ";
         printQ();
         // std::cerr << p << std::endl;
         finishedProcesses++;
       }
-      time += contextSw/2;
+      // time += contextSw/2;
       checkWorkingQueues( p.current().second );
+      p.setTime( time );
+
       p.next();
       if ( !(Q.empty()) ) {
+        time = p.getTime();
+        // std::cout << "time: " << time << std::endl;
         p = Q.front();
+        Q.pop();
+        p.setTime( time );
+        p.incrementContextSwitches();
       }
 
     }
@@ -132,10 +151,13 @@ private:
   void checkWorkingQueues( int nextTime ) {
     bool done = false;
     if ( !(IOworkingQueue.empty()) || !(CPUworkingQueue.empty()) ) {
-      bool ioDone = false;
+      int ioDone = 0;
       int cpuDone = 0;
       
       while ( (!ioDone || !cpuDone ) ) {
+
+      // printWorkingQueues();
+
         Process cpu, io;
         if ( CPUworkingQueue.empty() || IOworkingQueue.empty() ) { // io only
           cpuDone = cpuQueue( nextTime );
@@ -144,6 +166,10 @@ private:
             break;
           }
           ioDone = ioQueue( nextTime );
+          if ( ioDone == -1 ) {
+            // std::cout << "leaving \n";
+            break;
+          }
 
         }
         else {  // both
@@ -153,8 +179,15 @@ private:
             io = IOworkingQueue.top();
             if (cpu.current().first < io.current().second) {
               cpuDone = cpuQueue( nextTime );
+              if ( cpuDone == -1 ) {
+                done = true;
+                break;
+              }
             } else {
               ioDone = ioQueue( nextTime );
+              if ( ioDone == -1 ) {
+                break;
+              }
             }
           }
         }
@@ -164,45 +197,55 @@ private:
 
   }
 
-  bool ioQueue( int nextTime ) {
+  int ioQueue( int nextTime ) {
+    // sanity();
+    // std::cout << "Q:\n";
+    // pretty_print(Q);
     if ( IOworkingQueue.empty()) { return true ;}
+
     Process io = IOworkingQueue.top();
+    // std::cout << "nextTime: " << nextTime << std::endl;
     while ( io.current().second <= nextTime ) {
       // std::cout << "here io\n";
-      std::cout << prefix( io.current().second + time, io.getID() ) << "completed I/O; added to ready queue ";
-      io.ioDone( io.current().second + time );
+    if ( !Q.empty() ) {   // todo: more checks
+      return -1;
+    }
+      io.ioDone();
+      time = io.getTime();
       Q.push( io );
-      io.ioDone( time + io.current().second );
-      IOworkingQueue.pop();
       printQ();
-      
-      time += io.current().second;
-      if ( !IOworkingQueue.empty() ) {
+      IOworkingQueue.pop();
 
+      if ( !IOworkingQueue.empty() ) {
         io = IOworkingQueue.top();
       } else { break; }
     }
-    bool ioDone = ( IOworkingQueue.empty() || io.current().second > nextTime );
+    int ioDone = ( IOworkingQueue.empty() || io.current().second > nextTime );
     return ioDone;
   }
+
   int cpuQueue( int nextTime ) {
     if ( CPUworkingQueue.empty()) { return true ;}
     Process cpu = CPUworkingQueue.top();
     while ( cpu.current().first <= nextTime ) { 
       // std::cout << "here cpu\n";
       if ( cpu.getRemainingBursts() == 0 ) {
-        time += cpu.current().first;
+        // time += cpu.current().first;
         return -1; // true
       } 
-      // "completed a cpu burst ... "
-      cpu.cpuDone( time + cpu.current().first );
-      printQ();
 
-      std::cout << prefix( cpu.current().first + time, cpu.getID() ) << "switching out of CPU; will block on I/O until time " << cpu.current().first + time + cpu.current().second + contextSw/2 << "ms ";
+      // "completed a cpu burst ... "
+      cpu.cpuDone();
+      printQ();
+      time = cpu.getTime();
+
+      cpu.startIo( time );
+
+      // std::cout << prefix( cpu.current().first + time, cpu.getID() ) << "switching out of CPU; will block on I/O until time " << cpu.current().first + time + cpu.current().second + contextSw/2 << "ms ";
       printQ();
       // look at the ready queue and if theres stuff there then start them
 
-      time += cpu.current().first;
+      // time += cpu.current().first;
       IOworkingQueue.push( cpu );
       CPUworkingQueue.pop();
 
@@ -215,7 +258,14 @@ private:
     return cpuDone;
   }
 
-  void checkArrivals( int nextTime ) {
+  void printWorkingQueues() {
+    std::cout << "cpu\n";
+    pretty_print( CPUworkingQueue );
+    std::cout << "io\n";
+    pretty_print( IOworkingQueue );
+  }
+
+  void checkArrivals( int nextTime, int pTime ) {
     if ( processes.empty() ) {
       return;
     }
@@ -223,16 +273,19 @@ private:
 
     Process p = processes.front();
     if ( time + nextTime > p.getArrivalTime() ) {
-      addNewProcess();
+      addNewProcess( pTime );
     }
   }
 
-  Process addNewProcess() {
+  Process addNewProcess( int pTime ) {
     Process p = processes.front();
     Q.push(p);
     processes.erase( processes.begin() );
 
     std::cout << prefix( p.getArrivalTime(), p.getID() ) << "arrived; added to ready queue ";
+    if ( pTime != 0 ) {
+      p.setTime( pTime );
+    }
     printQ();
     return p;
   }
@@ -286,7 +339,7 @@ int main() {
   // Process('A', seed, lambda, upperBound);
   std::vector<Process> v;
   for ( int i = 0; i < 2; i++ ) {
-    v.push_back( Process( 'A' + i, seed, lambda, upperBound ) );
+    v.push_back( Process( 'A' + i, seed, lambda, upperBound, 4 ) );
   }
   std::sort( v.begin(), v.end(), std::greater<>() );
   Processes processes = Processes(v, 4);
