@@ -150,7 +150,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   int exiting_contextSwitch_counter = contextSwitch/2;
   while (1){   
     /*
-    if(time >2829 && time < 2901){
+    if(time >245 && time < 249){
       
       std::cout << "TIME: " << time << " ms\n";
       std::cout << "   Processes: " << processes.size() << "\n";
@@ -193,17 +193,16 @@ int sjf(std::vector<Process> processes, int contextSwitch)
     }
     // Handle Waiting Queue
     for (unsigned int i = 0; i < waiting_state.size(); i++){
-      
-      if (waiting_state[i].bursts[waiting_state[i].index].second == 1){
+      waiting_state[i].bursts[waiting_state[i].index].second--; 
+      if (waiting_state[i].bursts[waiting_state[i].index].second == 0){
         waiting_state[i].index++;
         ready_state.push_back(waiting_state[i]);
         std::cout << prefix( time, waiting_state[i].getID(),waiting_state[i].waiting_exponential_averaging()) << "completed I/O; added to ready queue ";
         print_queue_outside(ready_state);
         waiting_state.erase(waiting_state.begin() + i);
-      }else{
-        waiting_state[i].bursts[waiting_state[i].index].second--;  
       }
     }
+
     if(!leaving_Process.empty()){//Exiting Process switch
       exiting_contextSwitch_counter--;
       if(exiting_contextSwitch_counter==0){
