@@ -149,7 +149,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   int incoming_contextSwitch_counter = contextSwitch/2;
   int exiting_contextSwitch_counter = contextSwitch/2;
   while (1){   
-    
+    /*
     if(time <35){
       
       std::cout << "TIME: " << time << " ms\n";
@@ -169,7 +169,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
       if(leaving_Process.size()>0){
         std::cout << "   leaving_Process: " << leaving_Process[0].getID() << "\n";
       }      
-    }
+    }*/
     
     // ADD new Arrivals to Ready Queue
     if (!processes.empty()){
