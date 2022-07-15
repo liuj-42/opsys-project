@@ -142,6 +142,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   double avg_turn = 0;
   double cpu_util = 0;
   int cpu_burst_msg_counter=0;
+  int processes_gotten = 0;
   std::vector<Process> waiting_state;
   std::vector<int> deletes;
   std::vector<Process> leaving_Process;
@@ -176,7 +177,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
       for (int i = 0; i < (int)processes.size(); i++){
         if (time == processes[i].getArrivalTime()){ // Initial Setup
           ready_state.push_back(processes[i]);//dont forget to sort ready state
-          deletes.push_back(i);
+          processes_gotten++;
           std::cout << prefix( time, processes[i].getID(),processes[i].old_tau ) << "arrived; added to ready queue ";
           if(cpu_burst_msg_counter == 0){
             print_queue_outside(ready_state);
@@ -184,12 +185,6 @@ int sjf(std::vector<Process> processes, int contextSwitch)
             print_queue_inside(ready_state);
           }
           
-        }
-      }
-      // Delete From Processes
-      if(!deletes.empty()){
-        for (unsigned int i = deletes.size(); i>0; i--){
-          processes.erase(processes.begin() + deletes[i-1]);
         }
       }
       
@@ -266,7 +261,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
 
     
 
-    if (processes.empty() && waiting_state.empty() && ready_state.empty() && leaving_Process.empty()){
+    if (processes_gotten==processes.size()&& waiting_state.empty() && ready_state.empty() && leaving_Process.empty()){
       std::cout<<"time "<<std::to_string(time)<<"ms: Simulator ended for SJF [Q: empty]\n";
       //ALGO_print("Algorithm SJF", avg_cpu, avg_wait, avg_turn, 0, 0, cpu_util);
       return time;
