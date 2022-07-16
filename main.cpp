@@ -7,10 +7,14 @@
 #include <map>
 #include <unistd.h>
 #include <cfloat>
+#include <limits.h>
 #include <fstream>
+#include <numeric>
+#include <iomanip>
 
 #include "process.h"
 char alphabet[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'};
+std::ofstream file;
 
 int fcfs( std::vector<Process> processes, int contextSwitch );
 int rr  ( std::vector<Process> processes, int contextSwitch, float timeSlice, bool fcfs );
@@ -45,48 +49,34 @@ int main( int argc, char** argv ) {
   for ( int i = 0; i < numProcesses; i++ ) {
     processes.push_back( Process(alphabet[i], seed, lambda, upperBound) );
   }
+  file.open( "simout.txt" );
   std::cout << std::endl;
 
-
+  
   int time;
   // FCFS
   time = 0;
-  time += rr( processes, contextSwitch, 0, true );
+  time += fcfs( processes, contextSwitch );
   // RR
   // std::cout << "RR ALGORITHM START\n";
   std::cout << std::endl;
   time += rr( processes, contextSwitch, timeSlice, false);
-  std::ofstream file;
-  file.open( "simout.txt" );
-  file << "Algorithm FCFS\n";
-  file << "-- average CPU burst time: #.### ms\n";
-  file << "-- average wait time: #.### ms\n";
-  file << "-- average turnaround time: #.### ms\n";
-  file << "-- total number of context switches: #\n";
-  file << "-- total number of preemptions: #\n";
-  file << "-- CPU utilization: #.###%\n";
-  file << "Algorithm SJF\n";
-  file << "-- average CPU burst time: #.### ms\n";
-  file << "-- average wait time: #.### ms\n";
-  file << "-- average turnaround time: #.### ms\n";
-  file << "-- total number of context switches: #\n";
-  file << "-- total number of preemptions: #\n";
-  file << "-- CPU utilization: #.###%\n";
-  file << "Algorithm SRT\n";
-  file << "-- average CPU burst time: #.### ms\n";
-  file << "-- average wait time: #.### ms\n";
-  file << "-- average turnaround time: #.### ms\n";
-  file << "-- total number of context switches: #\n";
-  file << "-- total number of preemptions: #\n";
-  file << "-- CPU utilization: #.###%\n";
-  file << "Algorithm RR\n";
-  file << "-- average CPU burst time: #.### ms\n";
-  file << "-- average wait time: #.### ms\n";
-  file << "-- average turnaround time: #.### ms\n";
-  file << "-- total number of context switches: #\n";
-  file << "-- total number of preemptions: #\n";
-  file << "-- CPU utilization: #.###%\n";
-  file.close();
+
+  // file << "Algorithm SJF\n";
+  // file << "-- average CPU burst time: #.### ms\n";
+  // file << "-- average wait time: #.### ms\n";
+  // file << "-- average turnaround time: #.### ms\n";
+  // file << "-- total number of context switches: #\n";
+  // file << "-- total number of preemptions: #\n";
+  // file << "-- CPU utilization: #.###%\n";
+  // file << "Algorithm SRT\n";
+  // file << "-- average CPU burst time: #.### ms\n";
+  // file << "-- average wait time: #.### ms\n";
+  // file << "-- average turnaround time: #.### ms\n";
+  // file << "-- total number of context switches: #\n";
+  // file << "-- total number of preemptions: #\n";
+  // file << "-- CPU utilization: #.###%\n";
+
 }
 
 std::string prefix( int time, char pid ) {
@@ -154,11 +144,9 @@ std::string time_string(int time) {
 }
 
 int fcfs( std::vector<Process> processes, int contextSwitch ) {
-  int time = 0;
-  // std::priority_queue<Process> Q;
-  std::cout << "time 0ms: Simulator started for FCFS [Q: empty]\n";
+  // int time = 0;
+  int time = rr( processes, contextSwitch, 0, true );
 
-  
   return time;
 }
 
@@ -194,8 +182,10 @@ bool allProcessesTerminated(std::vector<Process> processes) {
 int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool fcfs ) {
   int time = 0;
   int contextSwitches = 0;
-  if ( fcfs ) {
-    // timeSlice = FLT_MAX;
+  int preemptions = 0;
+  std::vector<int> cpu_burst_times;
+  std::vector<int> wait_times;
+  if ( fcfs ) {  
     timeSlice = 1000000000;
   }
 
@@ -203,6 +193,13 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool
   std::sort( processes.begin(), processes.end(), [](Process a, Process b) {
         return a.getArrivalTime() < b.getArrivalTime();
   });
+  
+  for ( Process p : processes ) {
+    std::vector<int> res = p.getAllCpuBurstTimes();
+    for ( int i : res ) {
+      cpu_burst_times.push_back(i);
+    }
+  }
   
   std::queue<Process*> ready_queue;
 
@@ -302,6 +299,7 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool
           }
           ready_queue.push(p_cpu);
           preemption = true;
+          preemptions++;
           time += (contextSwitch / 2);
           contextSwitches++;
         }
@@ -378,6 +376,27 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool
     std::cout << time_string(time) << "Simulator ended for RR ";
   }
   printQ(ready_queue);
+  // for ( )
 
+  float avg_burst_time = std::accumulate(cpu_burst_times.begin(), cpu_burst_times.end(), 0.0) / cpu_burst_times.size();
+  // std::cerr << avg_burst_time << std::endl;
+  // std::cerr << std::accumulate(cpu_burst_times.begin(), cpu_burst_times.end(), 0.0) << std::endl;
+  // std::cerr << cpu_burst_times.size() << std::endl;
+  avg_burst_time = ceil(avg_burst_time * 1000) / 1000 ;
+  float avg_wait_time;
+  
+  avg_wait_time = ceil(avg_wait_time * 1000) / 1000 ;
+
+  if ( fcfs ) {
+    file << "Algorithm FCFS\n";
+  } else {
+    file << "Algorithm RR\n";
+  }
+  file << "-- average CPU burst time: " << avg_burst_time << " ms\n";
+  file << "-- average wait time: #.### ms\n";
+  file << "-- average turnaround time: #.### ms\n";
+  file << "-- total number of context switches: " << contextSwitches/2 << "\n";
+  file << "-- total number of preemptions: " << preemptions << "\n";
+  file << "-- CPU utilization: #.###%\n";
   return time;
 }

@@ -24,6 +24,7 @@ public:
         arrival_time = 0;
         num_bursts = 0;
     }
+    
     Process(char id, int seed, double lambda, int upper_bound) : pid(id), tau(1/lambda)
     {
         // tau = 1/lambda;
@@ -77,6 +78,14 @@ public:
     int getCurrentCPUBurst() { return bursts[bursts_completed].first; }
     int getCurrentIOBurst() { return bursts[bursts_completed - 1].second; }
     bool empty() { return bursts.empty(); }
+
+    std::vector<int> getAllCpuBurstTimes() {
+        std::vector<int> res;
+        for ( std::pair<int, int> burst : bursts ) {
+            res.push_back( burst.first );
+        }
+        return res;
+    }
 
     // debug
     void printAllBursts() {
@@ -154,7 +163,6 @@ private:
     // std::list<std::pair<int, int>> bursts;
     std::vector<std::pair<int, int>> originalBursts;
     std::vector<std::pair<int, int>> bursts;
-
     int tau;
 };
 
