@@ -648,10 +648,10 @@ int rr(std::vector<Process> processes, int contextSwitch, float timeSlice, bool 
   // std::cerr << avg_burst_time << std::endl;
   // std::cerr << std::accumulate(cpu_burst_times.begin(), cpu_burst_times.end(), 0.0) << std::endl;
   // std::cerr << cpu_burst_times.size() << std::endl;
-  avg_burst_time = ceil(avg_burst_time * 1000) / 1000;
+  // avg_burst_time = ceil(avg_burst_time * 1000) / 1000;
   float avg_wait_time = 0;
 
-  avg_wait_time = ceil(avg_wait_time * 1000) / 1000;
+  // avg_wait_time = ceil(avg_wait_time * 1000) / 1000;
 
   if (fcfs)
   {
@@ -661,9 +661,9 @@ int rr(std::vector<Process> processes, int contextSwitch, float timeSlice, bool 
   {
     file << "Algorithm RR\n";
   }
-  file << "-- average CPU burst time: " << avg_burst_time << " ms\n";
-  file << "-- average wait time: #.### ms\n";
-  file << "-- average turnaround time: #.### ms\n";
+  file << "-- average CPU burst time: " << std::fixed << std::setprecision(3) << avg_burst_time << " ms\n";
+  file << "-- average wait time: " << std::fixed << std::setprecision(3) << avg_wait_time << " ms\n";
+  file << "-- average turnaround time: " << std::fixed << std::setprecision(3)  << 0 << " ms\n";
   file << "-- total number of context switches: " << contextSwitches / 2 << "\n";
   file << "-- total number of preemptions: " << preemptions << "\n";
   file << "-- CPU utilization: #.###%\n";
