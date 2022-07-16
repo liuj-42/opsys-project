@@ -32,7 +32,7 @@ public:
         state = 0;
         arrival_time = floor(next_exp(seed, lambda, upper_bound));
         num_bursts = ceil(next_unif(seed));
-        std::cout << "Process " << pid << ": arrival time " << arrival_time << "ms; tau " << tau << "ms; " << num_bursts << ( num_bursts == 1 ? "CPU burst: " : " CPU bursts:" ) << std::endl;
+        std::cout << "Process " << pid << ": arrival time " << arrival_time << "ms; tau " << tau << "ms; " << num_bursts << ( num_bursts == 1 ? " CPU burst: " : " CPU bursts:" ) << std::endl;
         for (int c = 0; c < num_bursts; c++)
         {   
             int cpuBurst = ceil(next_exp(seed, lambda, upper_bound));
