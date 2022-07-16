@@ -208,8 +208,11 @@ int sjf(std::vector<Process> processes, int contextSwitch)
       if (waiting_state[i].bursts[waiting_state[i].index].second == 0){
         waiting_state[i].index++;
         ready_state.push_back(waiting_state[i]);
-        std::cout << prefix( time, waiting_state[i].getID(),waiting_state[i].waiting_exponential_averaging()) << "completed I/O; added to ready queue ";
-        print_queue_outside(ready_state);
+        if(time <1000){
+          std::cout << prefix( time, waiting_state[i].getID(),waiting_state[i].waiting_exponential_averaging()) << "completed I/O; added to ready queue ";
+          print_queue_outside(ready_state);
+        }
+        
         waiting_state.erase(waiting_state.begin() + i);
       }
     }
