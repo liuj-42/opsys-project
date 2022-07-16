@@ -163,7 +163,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   int incoming_contextSwitch_counter = contextSwitch/2;
   int exiting_contextSwitch_counter = contextSwitch/2;
   while (1){   
-    
+    /*
     if(time >90401){
       
       std::cout << "TIME: " << time << " ms\n";
@@ -200,7 +200,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
           
         }
       }
-    }
+    }*/
     // Handle Waiting Queue
     
     if(!waiting_state.empty()){
