@@ -310,7 +310,7 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool
         else if ( time <= 999 ) {
           int numTimeSliceExpirations = (int) floor(cpu_burst / timeSlice) + 1;
           for(int i = 0; i < numTimeSliceExpirations; i++) {
-            if ( time > 999 ) { break; }
+            if ( time + (timeSlice * i) > 999 ) { break; }
             std::cout << time_string(time + (timeSlice * i)) << "Time slice expired; no preemption because ready queue is empty ";
             printQ(ready_queue);
           }
