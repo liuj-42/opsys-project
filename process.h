@@ -24,9 +24,8 @@ public:
         arrival_time = 0;
         num_bursts = 0;
     }
-    Process(char id, int seed, double lambda, int upper_bound)
+    Process(char id, int seed, double lambda, int upper_bound) : pid(id), tau(1/lambda)
     {
-        pid = id;
         bursts_completed = 0;
         state = 0;
         arrival_time = floor(next_exp(seed, lambda, upper_bound));
@@ -57,7 +56,7 @@ public:
         out += ": arrival time ";
         out += std::to_string(arrival_time);
         out += "ms; tau";
-        out += "TBD";
+        out += tau;
         out += "ms;";
         out += std::to_string(num_bursts);
         out += " CPU bursts\n";
@@ -154,6 +153,8 @@ private:
     // std::list<std::pair<int, int>> bursts;
     std::vector<std::pair<int, int>> originalBursts;
     std::vector<std::pair<int, int>> bursts;
+
+    int tau;
 };
 
 std::ostream& operator<<(std::ostream& os, const Process& p)
