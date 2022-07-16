@@ -156,15 +156,15 @@ int sjf(std::vector<Process> processes, int contextSwitch)
   int cpu_burst_msg_counter=0;
   int processes_gotten = 0;
   std::vector<Process> waiting_state;
-  std::vector<int> deletes;
+  std::vector<char> deletes;
   std::vector<Process> leaving_Process;
   std::vector<Process> done;
   int value=0;
   int incoming_contextSwitch_counter = contextSwitch/2;
   int exiting_contextSwitch_counter = contextSwitch/2;
   while (1){   
-    /*
-    if(time >0 && time < 3000){
+    
+    if(time >90401){
       
       std::cout << "TIME: " << time << " ms\n";
       std::cout << "   Processes: " << processes.size() << "\n";
@@ -183,7 +183,7 @@ int sjf(std::vector<Process> processes, int contextSwitch)
       if(leaving_Process.size()>0){
         std::cout << "   leaving_Process: " << leaving_Process[0].getID() << "\n";
       }      
-    }*/
+    }
     
     // ADD new Arrivals to Ready Queue
     if (processes_gotten != (int)processes.size()){
@@ -201,8 +201,28 @@ int sjf(std::vector<Process> processes, int contextSwitch)
         }
       }
     }
+    // Handle Waiting Queue
+    
+    if(!waiting_state.empty()){
+      auto it = waiting_state.begin();
+      while(it != waiting_state.end()){
+        it->bursts[it->index].second--; 
+        if (it->bursts[it->index].second == 0){
+          it->index++;
+          ready_state.push_back(*it);
+          if(time <1000){
+            std::cout << prefix( time, (*it).getID(),(*it).waiting_exponential_averaging()) << "completed I/O; added to ready queue ";
+            print_queue_outside(ready_state);
+          }
+          it = waiting_state.erase(it);
+        }else{
+          ++it;
+        }
+      }
+    }
     
     // Handle Waiting Queue
+    /*
     for (unsigned int i = 0; i < waiting_state.size(); i++){
       waiting_state[i].bursts[waiting_state[i].index].second--; 
       if (waiting_state[i].bursts[waiting_state[i].index].second == 0){
@@ -212,10 +232,10 @@ int sjf(std::vector<Process> processes, int contextSwitch)
           std::cout << prefix( time, waiting_state[i].getID(),waiting_state[i].waiting_exponential_averaging()) << "completed I/O; added to ready queue ";
           print_queue_outside(ready_state);
         }
-        
-        waiting_state.erase(waiting_state.begin() + i);
+        deletes.push_back(waiting_state[i].getID());        
       }
-    }
+    }*/
+
     if(!leaving_Process.empty()){//Exiting Process switch
       leaving_Process[0].turnaround_times[leaving_Process[0].index]++;
       exiting_contextSwitch_counter--;
