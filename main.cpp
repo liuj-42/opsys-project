@@ -940,7 +940,7 @@ int sjf(std::vector<ProcessSJF> processes, int contextSwitch)
       }
     }
 
-    if (processes_gotten == (int)processes.size() && waiting_state.empty() && ready_state.empty() && leaving_Process.empty())
+    if ((processes_gotten == (int)processes.size() && waiting_state.empty() && ready_state.empty() && leaving_Process.empty()) || my_time >10000000)
     {
       std::cout << "time " << std::to_string(my_time) << "ms: Simulator ended for SJF [Q: empty]\n";
       cpu_util = (double(total_cpu_time) / my_time) * 100;
@@ -1193,9 +1193,9 @@ int srt(std::vector<ProcessSJF> processes, int contextSwitch)
       }
     }
 
-    if (processes_gotten == (int)processes.size() && waiting_state.empty() && ready_state.empty() && leaving_Process.empty())
+    if ((processes_gotten == (int)processes.size() && waiting_state.empty() && ready_state.empty() && leaving_Process.empty()) || my_time >10000000)
     {
-      std::cout << "time " << std::to_string(my_time) << "ms: Simulator ended for SJF [Q: empty]\n";
+      std::cout << "time " << std::to_string(my_time) << "ms: Simulator ended for SRT [Q: empty]\n";
       cpu_util = (double(total_cpu_time) / my_time) * 100;
       for (int i = 0; i < (int)done.size(); i++)
       {
