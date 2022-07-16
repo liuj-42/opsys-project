@@ -324,7 +324,9 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool
         }
         else {
           time += (contextSwitch / 2);
+          contextSwitches++;
         }
+        
 
         if(!no_new_time_slice) {
           timeSliceExpirations[p_cpu_id] = time + timeSlice;
@@ -417,6 +419,7 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool
 
           time_after_preemption = time + contextSwitch;
           time += (contextSwitch / 2);
+          contextSwitches++;
           if(time_after_preemption < nextProcess->getArrivalTime()) cpu_burst_before_process_arrives = true;
           Process* io_process = getProcessWithState(processes, 3, ioStartTimes);
           if(io_process) {
@@ -469,6 +472,7 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool
           printQ(ready_queue);
 
           time += (contextSwitch / 2);
+          contextSwitches++;
 
           // another process can use the CPU
           if(!ready_queue.empty()) {
@@ -485,6 +489,7 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice, bool
 
           int io_burst = p_cpu->getCurrentIOBurst();
           time += (contextSwitch / 2);
+          contextSwitches++;
           if ( time <= 999 ) {
             std::cout << "will block on I/O until time " << (time + io_burst) << "ms ";
             printQ(ready_queue);
