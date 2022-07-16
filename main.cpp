@@ -182,7 +182,7 @@ Process* getProcessWithState(std::vector<Process> &processes, int targetState, s
     Process *p = &processes[i];
     if(p->getState() == targetState) targetProcesses.push_back(p);
   }
-  if(targetProcesses.size() == 0) return NULL;
+  if(targetProcesses.empty()) return NULL;
   if(targetState != 3) return targetProcesses[0];
 
   // return process with earliest I/O burst end time
@@ -192,6 +192,14 @@ Process* getProcessWithState(std::vector<Process> &processes, int targetState, s
     if(targetProcesses[i]->getCurrentIOBurst() + ioStartTimes[targetProcesses[i]->getID()] < earliest_io_burst_end) {
       earliest_io_burst_end = targetProcesses[i]->getCurrentIOBurst() + ioStartTimes[targetProcesses[i]->getID()];
       returnProcess = targetProcesses[i];
+    }
+    else if(targetProcesses[i]->getCurrentIOBurst() + ioStartTimes[targetProcesses[i]->getID()] == earliest_io_burst_end) {
+      char id1 = targetProcesses[i]->getID();
+      char id2 = returnProcess->getID();
+      if(id1 < id2) {
+        earliest_io_burst_end = targetProcesses[i]->getCurrentIOBurst() + ioStartTimes[targetProcesses[i]->getID()];
+        returnProcess = targetProcesses[i];
+      }
     }
   }
 
@@ -228,15 +236,29 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice ) {
   std::cout << timeSlice << "ms ";
   printQ(ready_queue);
 
+  int cpu_burst_start = 0;
+  int time_after_preemption = -1;
+  int time_after_completion = -1;
+  bool cpu_burst_before_process_arrives = false;
+  bool cpu_burst_before_io = false;
+  bool time_slice_expiration_no_preemption = false;
+  bool no_new_time_slice = false;
+  bool preemption = false;
+  Process* cpu_process = NULL;
+
+  bool push_to_ready_queue_after_io = false;
+  Process* to_be_queued;
+
   int pIndex = 0;
   while(!allProcessesTerminated(processes)) {
+    preemption = false;
     if(pIndex < (int) processes.size()) {
       Process *p = &processes[pIndex];
       char id = p->getID();
-      pIndex++;
 
       // process arrives
-      if(p->getState() == 0) {
+      if(p->getState() == 0 && !cpu_burst_before_process_arrives) {
+        pIndex++;
         time = p->getArrivalTime();
         std::cout << time_string(time) << "Process " << id << " arrived; added to ready queue ";
         p->addToReadyQueue(ready_queue);
@@ -249,75 +271,191 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice ) {
     
     // process uses CPU
     Process *p_cpu = ready_queue.front();
-    if(p_cpu->getState() == 1 || p_cpu->getState() == 2) {
+    if(cpu_process) p_cpu = cpu_process;
+    int p_cpu_state = p_cpu->getState();
+    if(p_cpu_state == 1 || p_cpu_state == 2) {
+      bool io_first = false;
+
+      // a process has to do I/O
+      if(!cpu_burst_before_io) {
+        Process *p_io = getProcessWithState(processes, 3, ioStartTimes);
+        if(p_io) {
+          int p_io_end_time = ioStartTimes[p_io->getID()] + p_io->getCurrentIOBurst();
+          if(p_io_end_time < (time + (contextSwitch / 2))) {
+            io_first = true;
+            bool popLater = true;
+            if(!cpu_process && p_io_end_time != time && p_io_end_time > time) {
+              ready_queue.pop();
+              popLater = false;
+            }
+            p_io->doIOBurst(ioStartTimes[p_io->getID()]);
+            char p_io_id = p_io->getID();
+            std::cout << time_string(p_io_end_time) << "Process " << p_io_id << " completed I/O; added to ready queue ";
+            ready_queue.push(p_io);
+            printQ(ready_queue);
+            if(!cpu_process && popLater) ready_queue.pop();
+            if(push_to_ready_queue_after_io) {
+              ready_queue.push(to_be_queued);
+              push_to_ready_queue_after_io = false;
+            }
+          }
+        }
+      }
+
+      if(!cpu_process && !io_first) ready_queue.pop();
+
+      if(cpu_burst_before_process_arrives) cpu_burst_before_process_arrives = false;
+      if(cpu_burst_before_io) cpu_burst_before_io = false;
+
       char p_cpu_id = p_cpu->getID();
-      ready_queue.pop();
-      time += (contextSwitch / 2);
-      timeSliceExpirations[p_cpu_id] = time + timeSlice;
+      if(!no_new_time_slice) timeSliceExpirations[p_cpu_id] = time + timeSlice + (contextSwitch / 2);
+      else no_new_time_slice = false;
       int timeSliceExpiration = timeSliceExpirations[p_cpu_id];
       int cpu_burst = p_cpu->getCurrentCPUBurst();
 
       int original_cpu_burst = p_cpu->getOriginalBursts()[p_cpu->getBurstsCompleted()].first;
 
-      if(cpu_burst == original_cpu_burst) {
-        std::cout << time_string(time) << "Process " << p_cpu_id << " started using the CPU for ";
-        std::cout << cpu_burst << "ms burst ";
-        printQ(ready_queue);
-      }
-      else {
-        std::cout << time_string(time) << "Process " << p_cpu_id << " started using the CPU for ";
-        std::cout << "remaining " << cpu_burst << "ms of " << original_cpu_burst << "ms burst ";
-        printQ(ready_queue);
-      }
+      if(!time_slice_expiration_no_preemption) {
+        if(time_after_preemption != -1) {
+          time = time_after_preemption;
+          time_after_preemption = -1;
+        }
+        else if(time_after_completion != -1) {
+          time = time_after_completion;
+          time_after_completion = -1;
+        }
+        else time += (contextSwitch / 2);
 
-      // original time for when CPU burst started
-      int cpu_burst_start = time;
+        if(!no_new_time_slice) {
+          timeSliceExpirations[p_cpu_id] = time + timeSlice;
+          timeSliceExpiration = time + timeSlice;
+        }
 
-      // next process is ready to arrive
-      if(pIndex < (int) processes.size() && (nextProcess->getArrivalTime() < timeSliceExpiration
-        || nextProcess->getArrivalTime() < (time + cpu_burst))) {
-          char next_process_id = nextProcess->getID();
-          time = nextProcess->getArrivalTime();
-          std::cout << time_string(time) << "Process " << next_process_id << " arrived; added to ready queue ";
-          nextProcess->addToReadyQueue(ready_queue);
+        if(cpu_burst == original_cpu_burst) {
+          std::cout << time_string(time) << "Process " << p_cpu_id << " started using the CPU for ";
+          std::cout << cpu_burst << "ms burst ";
           printQ(ready_queue);
+        }
+        else {
+          std::cout << time_string(time) << "Process " << p_cpu_id << " started using the CPU for ";
+          std::cout << "remaining " << cpu_burst << "ms of " << original_cpu_burst << "ms burst ";
+          printQ(ready_queue);
+        }
+        // original time for when CPU burst started
+        cpu_burst_start = time;
       }
 
-      bool preemption = false;
+      // next process(es) is/are ready to arrive
+      if(pIndex < (int) processes.size()) {
+        for(int i = pIndex; i < (int) processes.size(); i++) {
+          if (((timeSliceExpiration < (time + cpu_burst) && nextProcess->getArrivalTime() < timeSliceExpiration)
+          || ((time + cpu_burst) <= timeSliceExpiration && nextProcess->getArrivalTime() < (time + cpu_burst)))) {
+            char next_process_id = nextProcess->getID();
+            time = nextProcess->getArrivalTime();
+            std::cout << time_string(time) << "Process " << next_process_id << " arrived; added to ready queue ";
+            nextProcess->addToReadyQueue(ready_queue);
+            printQ(ready_queue);
+            pIndex++;
+            nextProcess = &processes[pIndex];
+          }
+          else {
+            break;
+          }
+        }
+      }
+
+      // some processes finish I/O first
+      Process *p_io;
+      do {
+        p_io = getProcessWithState(processes, 3, ioStartTimes);
+        if(p_io) {
+          int p_io_end_time = ioStartTimes[p_io->getID()] + p_io->getCurrentIOBurst();
+          if((timeSliceExpiration < (cpu_burst_start + cpu_burst) && p_io_end_time < timeSliceExpiration) || (timeSliceExpiration >= (cpu_burst_start + cpu_burst) && p_io_end_time < (cpu_burst_start + cpu_burst))) {
+            time = p_io->doIOBurst(ioStartTimes[p_io->getID()]);
+            char p_io_id = p_io->getID();
+            std::cout << time_string(time) << "Process " << p_io_id << " completed I/O; added to ready queue ";
+            ready_queue.push(p_io);
+            printQ(ready_queue);
+            if(push_to_ready_queue_after_io) {
+              ready_queue.push(to_be_queued);
+              push_to_ready_queue_after_io = false;
+            }
+          }
+          else break;
+        }
+      } while (p_io);
+
+      bool completed = true;
 
       // time slice will expire before CPU burst completes
-      if(timeSliceExpiration < (time + cpu_burst)) {
+      if(timeSliceExpiration < (cpu_burst_start + cpu_burst)) {
+        completed = false;
         time = p_cpu->doCPUBurst(cpu_burst_start, timeSlice);
         cpu_burst = p_cpu->getCurrentCPUBurst();
         // process can be preempted
         if(!ready_queue.empty()) {
+          preemption = true;
+          time_slice_expiration_no_preemption = false;
+          cpu_process = NULL;
           std::cout << time_string(time) << "Time slice expired; process " << p_cpu_id << " preempted with ";
           std::cout << cpu_burst << "ms remaining ";
           printQ(ready_queue);
-          ready_queue.push(p_cpu);
-          preemption = true;
+          time_after_preemption = time + contextSwitch;
           time += (contextSwitch / 2);
+          if(time_after_preemption < nextProcess->getArrivalTime()) cpu_burst_before_process_arrives = true;
+          Process* io_process = getProcessWithState(processes, 3, ioStartTimes);
+          if(io_process) {
+            int io_process_end_time = (ioStartTimes[io_process->getID()] + io_process->getCurrentIOBurst());
+            if(io_process_end_time < time) {
+              push_to_ready_queue_after_io = true;
+              to_be_queued = p_cpu;
+            }
+            else ready_queue.push(p_cpu);
+
+            if(time_after_preemption <= io_process_end_time) {
+              cpu_burst_before_io = true;
+            }
+          }
+          else ready_queue.push(p_cpu);
         }
         // process cannot be preempted
         else {
-          int numTimeSliceExpirations = (int) floor(cpu_burst / timeSlice) + 1;
-          for(int i = 0; i < numTimeSliceExpirations; i++) {
-            std::cout << time_string(time + (timeSlice * i)) << "Time slice expired; no preemption because ready queue is empty ";
-            printQ(ready_queue);
+          time_slice_expiration_no_preemption = true;
+          no_new_time_slice = true;
+          cpu_burst_start = time;
+          timeSliceExpirations[p_cpu->getID()] = time + timeSlice;
+          std::cout << time_string(time) << "Time slice expired; no preemption because ready queue is empty ";
+          printQ(ready_queue);
+          if(time + timeSlice < nextProcess->getArrivalTime()) cpu_burst_before_process_arrives = true;
+          Process* io_process = getProcessWithState(processes, 3, ioStartTimes);
+          cpu_process = p_cpu;
+          if(io_process &&
+            ((time + timeSlice) <= (ioStartTimes[io_process->getID()] + io_process->getCurrentIOBurst())
+            || ((time + cpu_burst) <= (ioStartTimes[io_process->getID()] + io_process->getCurrentIOBurst())))) {
+            cpu_burst_before_io = true;
           }
         }
       }
       // CPU burst will complete
-      if(!preemption) {
-        time = p_cpu->doCPUBurst(time, cpu_burst);
+      if(completed) {
+        time_slice_expiration_no_preemption = false;
+        cpu_process = NULL;
+        time = p_cpu->doCPUBurst(cpu_burst_start, cpu_burst);
         if(p_cpu->getState() == 4) {
           std::cout << time_string(time) << "Process " << p_cpu_id << " terminated ";
           printQ(ready_queue);
           time += (contextSwitch / 2);
+
+          // another process can use the CPU
+          if(!ready_queue.empty()) {
+            p_cpu = ready_queue.front();
+            continue;
+          }
         }
         else {
           std::cout << time_string(time) << "Process " << p_cpu_id << " completed a CPU burst; ";
-          std::cout << p_cpu->getRemainingBursts() << " bursts to go ";
+          if(p_cpu->getRemainingBursts() == 1) std::cout << "1 burst to go ";
+          else std::cout << p_cpu->getRemainingBursts() << " bursts to go ";
           printQ(ready_queue);
           std::cout << time_string(time) << "Process " << p_cpu_id << " switching out of CPU; ";
           int io_burst = p_cpu->getCurrentIOBurst();
@@ -325,23 +463,45 @@ int rr( std::vector<Process> processes, int contextSwitch, float timeSlice ) {
           std::cout << "will block on I/O until time " << (time + io_burst) << "ms ";
           ioStartTimes[p_cpu->getID()] = time;
           printQ(ready_queue);
+          bool process_will_be_ready = false;
+          Process* current_io = getProcessWithState(processes, 3, ioStartTimes);
+          int current_io_end = ioStartTimes[current_io->getID()] + current_io->getCurrentIOBurst();
+          process_will_be_ready = current_io_end < (time + (contextSwitch / 2));
+          if(!ready_queue.empty() || process_will_be_ready) time_after_completion = time + (contextSwitch / 2);
+          if(!ready_queue.empty() && (time + contextSwitch / 2) < nextProcess->getArrivalTime()) cpu_burst_before_process_arrives = true;
+
+          // there is a process waiting to use CPU
+          if(!ready_queue.empty() && ((time + (contextSwitch / 2)) < (p_cpu->getCurrentIOBurst() + time)))
+            continue;
         }
       }
-
-      // there is a process waiting to use CPU
-      if(!ready_queue.empty() && ((time + (contextSwitch / 2)) < (p_cpu->getCurrentIOBurst() + time)))
-        continue;
     }
 
     // process does I/O
     Process *p_io = getProcessWithState(processes, 3, ioStartTimes);
-    if(p_io) {
+    if(p_io && !cpu_burst_before_io) {
+      std::queue<Process*> temp_queue = ready_queue;
+      int pre_io_time = time;
+      if(!temp_queue.empty()) {
+        temp_queue.pop();
+        temp_queue.push(p_io);
+      }
       time = p_io->doIOBurst(ioStartTimes[p_io->getID()]);
       char p_io_id = p_io->getID();
       std::cout << time_string(time) << "Process " << p_io_id << " completed I/O; added to ready queue ";
       ready_queue.push(p_io);
-      printQ(ready_queue);
+      if(preemption && time < (pre_io_time + (contextSwitch / 2)) && time > pre_io_time) {
+        printQ(temp_queue);
+        preemption = false;
+      }
+      else printQ(ready_queue);
+      if(push_to_ready_queue_after_io) {
+        ready_queue.push(to_be_queued);
+        push_to_ready_queue_after_io = false;
+      }
     }
+
+    //if(time > 323000) break;
   }
 
   // end simulation
