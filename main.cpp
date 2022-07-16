@@ -725,7 +725,7 @@ int sjf(std::vector<ProcessSJF> processes, int contextSwitch)
   int time = 0;
   // std::priority_queue<Process> Q;
   std::cout << "time 0ms: Simulator started for SJF [Q: empty]\n";
-  std::vector<Process> ready_state;
+  std::vector<ProcessSJF> ready_state;
 
   // print_queue(ready_state);
   double avg_cpu = 0;
@@ -737,11 +737,10 @@ int sjf(std::vector<ProcessSJF> processes, int contextSwitch)
   int preemptions = 0;
   int cpu_burst_msg_counter = 0;
   int processes_gotten = 0;
-  std::vector<Process> waiting_state;
+  std::vector<ProcessSJF> waiting_state;
   std::vector<char> deletes;
-  std::vector<Process> leaving_Process;
-  std::vector<Process> done;
-  int value = 0;
+  std::vector<ProcessSJF> leaving_Process;
+  std::vector<ProcessSJF> done;
   int incoming_contextSwitch_counter = contextSwitch / 2;
   int exiting_contextSwitch_counter = contextSwitch / 2;
   while (1)
@@ -766,7 +765,7 @@ int sjf(std::vector<ProcessSJF> processes, int contextSwitch)
       if(leaving_Process.size()>0){
         std::cout << "   leaving_Process: " << leaving_Process[0].getID() << "\n";
       }
-    }
+    }*/
 
     // ADD new Arrivals to Ready Queue
     if (processes_gotten != (int)processes.size()){
@@ -783,7 +782,7 @@ int sjf(std::vector<ProcessSJF> processes, int contextSwitch)
 
         }
       }
-    }*/
+    }
     // Handle Waiting Queue
 
     if (!waiting_state.empty())
