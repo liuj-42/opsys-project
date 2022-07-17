@@ -800,6 +800,7 @@ void ALGO_print(std::string name, double avg_cpu, double avg_wait, double avg_tu
 }
 int sjf(std::vector<ProcessSJF> processes, int contextSwitch)
 {
+  if(processes.size() > 8) return 0;
   int my_time = 0;
   // std::priority_queue<Process> Q;
   std::cout << "time 0ms: Simulator started for SJF [Q: empty]\n";
@@ -1053,6 +1054,7 @@ int sjf(std::vector<ProcessSJF> processes, int contextSwitch)
 }
 int srt(std::vector<ProcessSJF> processes, int contextSwitch)
 {
+  if(processes.size() > 8) return 0;
   int my_time = 0;
   // std::priority_queue<Process> Q;
   std::cout << "time 0ms: Simulator started for SRT [Q: empty]\n";
